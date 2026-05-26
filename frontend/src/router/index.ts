@@ -60,7 +60,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dashboard/roles',
     name: 'Roles',
     component: () => import('@/views/RolesView.vue'),
-    meta: { requiresAuth: true }
+    meta: { 
+      requiresAuth: true,
+      // Agregamos el permiso requerido para entrar a esta pantalla
+       requiredPermission: 'roles:read' // Esto es opcional, dependiendo de cómo quieras manejar los permisos en el frontend
+    }
   }
 ];
 
@@ -85,6 +89,16 @@ router.beforeEach((to, from) => {
     return { name: 'Dashboard' };
   }
 
+  if (to.meta.requiredPermission) {
+    const activeTenant = authStore.user?.tenants?.find(t => t.id === authStore.activeTenantId);
+    const isOwner = activeTenant?.roles?.includes('Owner');
+    const hasPerm = activeTenant?.permissions?.includes(to.meta.requiredPermission as string);
+
+    if (!isOwner && !hasPerm) {
+      // Lo pateamos al dashboard principal si no tiene permiso
+      return { name: 'Dashboard' };
+    }
+  }
   // Si no retornamos nada, Vue Router permite la navegación por defecto
 });
 

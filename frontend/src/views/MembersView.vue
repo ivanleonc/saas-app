@@ -9,7 +9,7 @@
       </div>
 
       <div class="grid-layout">
-        <div class="form-section">
+        <div class="form-section" v-permission="'users:create'"">
           <form @submit.prevent="handleAddSubmit">
             <UiCard>
               <template #header>
@@ -86,10 +86,10 @@
                     </span>
                   </td>
                   <td class="text-right">
-                    <button class="action-btn edit-btn" @click="openEditModal(member)">
+                    <button class="action-btn edit-btn" @click="openEditModal(member)" v-permission="'users:update'">
                       Editar
                     </button>
-                    <button class="action-btn delete-btn" @click="handleDelete(member.id, member.name)">
+                    <button class="action-btn delete-btn" @click="handleDelete(member.id, member.name)" v-permission="'users:delete'">
                       Eliminar
                     </button>
                   </td>
