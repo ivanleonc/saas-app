@@ -1,9 +1,12 @@
 <template>
-  <router-view />
+  <router-view :key="$route.path + '-' + (authStore.activeTenantId || 'public')" />
 </template>
 
 <script setup lang="ts">
-// La lógica de ruteo y estado se maneja en los guards y vistas
+import { useAuthStore } from '@/stores/auth.store';
+
+// Instanciamos el store globalmente para escuchar la empresa activa
+const authStore = useAuthStore();
 </script>
 
 <style>

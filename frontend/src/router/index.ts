@@ -12,7 +12,7 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Login',
     // Usamos Lazy Loading (import dinámico) para optimizar el bundle inicial
     component: () => import('@/views/LoginView.vue'),
-    meta: { 
+    meta: {
       requiresGuest: true // Solo usuarios NO autenticados pueden ver esto
     }
   },
@@ -20,7 +20,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/register',
     name: 'Register',
     component: () => import('@/views/RegisterView.vue'),
-    meta: { 
+    meta: {
       requiresGuest: true
     }
   },
@@ -28,16 +28,16 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/DashboardView.vue'), // Asumiendo que crearás esta vista
-    meta: { 
+    meta: {
       requiresAuth: true // Ruta estrictamente protegida
     }
   },
   {
-      path: '/dashboard/settings',
-      name: 'settings',
-      component: () => import('@/views/SettingsView.vue'),
-      meta: { requiresAuth: true } // Asumiendo que tienes protección de rutas
-    },
+    path: '/dashboard/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsView.vue'),
+    meta: { requiresAuth: true } // Asumiendo que tienes protección de rutas
+  },
   {
     // Catch-all para rutas no encontradas (404)
     path: '/:pathMatch(.*)*',
@@ -45,17 +45,23 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/NotFoundView.vue') // Vista 404 opcional
   },
   {
-  path: '/dashboard/members',
-  name: 'Members',
-  component: () => import('@/views/MembersView.vue'),
-  meta: { requiresAuth: true }
-},
-{
-  path: '/dashboard/profile',
-  name: 'profile',
-  component: () => import('@/views/ProfileView.vue'),
-  meta: { requiresAuth: true }
-},
+    path: '/dashboard/members',
+    name: 'Members',
+    component: () => import('@/views/MembersView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/roles',
+    name: 'Roles',
+    component: () => import('@/views/RolesView.vue'),
+    meta: { requiresAuth: true }
+  }
 ];
 
 // 2. Instancia del Router
@@ -73,12 +79,12 @@ router.beforeEach((to, from) => {
   // Lógica de redirección moderna (retornando el objeto en lugar de usar next())
   if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: 'Login' };
-  } 
-  
+  }
+
   if (to.meta.requiresGuest && isAuthenticated) {
     return { name: 'Dashboard' };
-  } 
-  
+  }
+
   // Si no retornamos nada, Vue Router permite la navegación por defecto
 });
 
