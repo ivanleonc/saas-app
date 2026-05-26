@@ -1,0 +1,20 @@
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import router from './router';
+
+// Estilos globales (si usas Tailwind o CSS normal)
+import './assets/main.css';
+
+const app = createApp(App);
+
+// 1. Instanciar Pinia PRIMERO
+const pinia = createPinia();
+app.use(pinia);
+
+// 2. Instanciar el Router SEGUNDO
+// Así el router.beforeEach puede consumir useAuthStore() de Pinia sin crashear
+app.use(router);
+
+// 3. Montar la aplicación
+app.mount('#app');
