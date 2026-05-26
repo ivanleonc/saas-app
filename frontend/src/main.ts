@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
+import { permissionDirective } from './directives/permission';
 
 // Estilos globales (si usas Tailwind o CSS normal)
 import './assets/main.css';
@@ -15,6 +16,6 @@ app.use(pinia);
 // 2. Instanciar el Router SEGUNDO
 // Así el router.beforeEach puede consumir useAuthStore() de Pinia sin crashear
 app.use(router);
-
+app.directive('permission', permissionDirective);
 // 3. Montar la aplicación
 app.mount('#app');
