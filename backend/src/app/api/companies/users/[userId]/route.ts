@@ -4,7 +4,7 @@ import { memberService } from '@/services/member.service';
 import { z } from 'zod';
 
 const updateSchema = z.object({
-  roleId: z.number().int().positive().optional(),
+  roleIds: z.array(z.number().int()).optional(),
   status: z.enum(['active', 'inactive']).optional()
 });
 

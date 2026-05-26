@@ -10,7 +10,7 @@ export interface Member {
 export interface CreateMemberPayload {
   name: string;
   email: string;
-  roleId: number; // 1 para Owner, 2 para Admin (según tus tablas semilla)
+  roleIds: number; // 1 para Owner, 2 para Admin (según tus tablas semilla)
 }
 
 // Interfaz para la respuesta estructurada de tu apiResponse.ts
@@ -33,6 +33,6 @@ export interface CreateMemberResponse {
 }
 
 export interface UpdateMemberPayload {
-  roleId?: number;
+  roleIds?: number;
   status?: 'active' | 'inactive';
 }

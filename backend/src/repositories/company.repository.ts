@@ -98,21 +98,19 @@ export class CompanyRepository {
   // ==========================================
   // AGREGAR MIEMBRO DENTRO DE UNA TRANSACCIÓN
   // ==========================================
-  async addMemberWithClient(client: PoolClient, companyId: number, userId: number, roleId: number) {
-    // 1. Insertamos la relación base en company_users (ya no lleva role_id)
+async addMemberWithClient(client: PoolClient, companyId: number, userId: number, roleIds: number[]) {
     await client.query(
-      `INSERT INTO company_users (company_id, user_id, status) 
-       VALUES ($1, $2, 'active')`,
+      `INSERT INTO company_users (company_id, user_id, status) VALUES ($1, $2, 'active')`,
       [companyId, userId]
     );
 
-    // 2. Insertamos el rol inicial en la nueva tabla puente
-    if (roleId) {
-      await client.query(
-        `INSERT INTO company_user_roles (company_id, user_id, role_id) 
-         VALUES ($1, $2, $3)`,
-        [companyId, userId, roleId]
-      );
+    if (roleIds && roleIds.length > 0) {
+      for (const rId of roleIds) {
+        await client.query(
+          `INSERT INTO company_user_roles (company_id, user_id, role_id) VALUES ($1, $2, $3)`,
+          [companyId, userId, rId]
+        );
+      }
     }
   }
 
@@ -128,7 +126,7 @@ export class CompanyRepository {
       );
     }
 
-    // 2. Preparamos los roles (soporta el viejo roleId único o el nuevo array roleIds)
+    // 2. Preparamos los roles (soporta el viejo roleIds único o el nuevo array roleIds)
     let rolesToAssign: number[] = [];
     if (data.roleIds) {
       rolesToAssign = data.roleIds;
@@ -194,7 +192,7 @@ export class CompanyRepository {
       client.release();
     }
   }
-  
+
   async update(companyId: number, data: { name?: string; tax_id?: string }) {
     const updates = [];
     const values = [];

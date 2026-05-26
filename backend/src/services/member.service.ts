@@ -16,7 +16,7 @@ export class MemberService {
     companyId: number, 
     name: string, 
     email: string, 
-    roleId: number
+    roleIds: number[]
   ) {
     // Usamos "this.userRepository" en lugar de "UserRepository"
     const existingUser = await this.userRepository.findByEmail(email);
@@ -35,7 +35,7 @@ export class MemberService {
 
       // Usamos "this.userRepository" y "this.companyRepository"
       const newUser = await this.userRepository.createWithClient(client, name, email, passwordHash);
-      await this.companyRepository.addMemberWithClient(client, companyId, newUser.id, roleId);
+      await this.companyRepository.addMemberWithClient(client, companyId, newUser.id, roleIds);
 
       await client.query('COMMIT');
       
@@ -44,7 +44,7 @@ export class MemberService {
         name: newUser.name,
         email: newUser.email,
         temporary_password: temporaryPassword,
-        role_assigned: roleId
+        role_assigned: roleIds
       };
 
     } catch (error) {

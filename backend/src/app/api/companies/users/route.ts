@@ -6,7 +6,7 @@ import { getContext } from '@/utils/get-context';
 const addMemberSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('El formato del correo es inválido'),
-  role_id: z.number().int('El ID del rol debe ser un número entero'),
+  roleIds: z.array(z.number().int()).min(1, 'Debe seleccionar al menos un rol'),
 });
 
 export async function GET(request: Request) {
@@ -29,10 +29,10 @@ export async function POST(request: Request) {
     if (!companyId) throw new Error('MISSING_COMPANY');
 
     const body = await request.json();
-    const { name, email, role_id } = addMemberSchema.parse(body);
+    const { name, email, roleIds } = addMemberSchema.parse(body);
 
     // Usamos "memberService" instanciado
-    const newMember = await memberService.addMemberToCompany(userId, companyId, name, email, role_id);
+    const newMember = await memberService.addMemberToCompany(userId, companyId, name, email, roleIds);
     return apiResponse.created(newMember, 'Usuario añadido al equipo exitosamente');
 
   } catch (error) {

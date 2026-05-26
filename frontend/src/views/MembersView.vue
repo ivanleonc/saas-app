@@ -23,13 +23,20 @@
                   <p><strong>Clave:</strong> <code class="secret-code">{{ newMemberCredentials.password }}</code></p>
                 </div>
                 <UiInput v-model="addForm.name" label="Nombre Completo" required />
-                <UiInput v-model="addForm.email" label="Correo Electrónico" type="email" required />
+               <UiInput v-model="addForm.email" label="Correo Electrónico" type="email" required />
                 <div class="select-group">
                   <label class="ui-label">Rol Asignado</label>
-                  <select v-model="addForm.roleId" class="ui-select" required>
-                    <option :value="2">Admin (Gestión Estándar)</option>
-                    <option :value="1">Owner (Control Total)</option>
-                  </select>
+                  <div style="margin-top: 1rem;">
+                    <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-main);">Roles
+                      Asignados</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                      <label v-for="role in availableRoles" :key="role.id"
+                        style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                        <input type="checkbox" :value="role.id" v-model="addForm.roleIds" />
+                        {{ role.name }}
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
               <template #footer>
@@ -93,45 +100,53 @@
         </div>
       </div>
 
-      <UiModal v-model="isEditModalOpen">
-        <form @submit.prevent="handleEditSubmit">
-          <UiCard>
-            <template #header>
-              <h3 class="card-title">Editar Miembro</h3>
-              <p class="card-description">Modifica el rol o estado de {{ editingMember?.name }}</p>
-            </template>
+<UiModal v-model="isEditModalOpen">
+      <form @submit.prevent="handleEditSubmit">
+        <UiCard>
+          <template #header>
+            <h3 class="card-title" style="margin:0; font-size: 1.125rem;">Editar Miembro</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted);">
+              Modificando accesos para: <strong>{{ editForm.name }}</strong>
+            </p>
+          </template>
+          
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
             
-            <div class="form-body">
-              <div class="select-group">
-                <label class="ui-label">Rol del Usuario</label>
-                <select v-model="editForm.roleId" class="ui-select" required>
-                  <option :value="2">Admin</option>
-                  <option :value="1">Owner</option>
-                </select>
-              </div>
+            <UiSelect 
+              v-model="editForm.status" 
+              label="Estado de la Cuenta" 
+              :options="statusOptions" 
+            />
 
-              <div class="select-group">
-                <label class="ui-label">Estado de la Cuenta</label>
-                <select v-model="editForm.status" class="ui-select" required>
-                  <option value="active">Activo</option>
-                  <option value="inactive">Inactivo (Suspendido)</option>
-                </select>
+            <div>
+              <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-main);">Roles Asignados</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                <label 
+                  v-for="role in availableRoles" 
+                  :key="role.id" 
+                  style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;"
+                >
+                  <input type="checkbox" :value="role.id" v-model="editForm.roleIds" />
+                  {{ role.name }}
+                </label>
               </div>
             </div>
 
-            <template #footer>
-              <div style="display: flex; gap: 0.5rem; width: 100%;">
-                <UiButton type="button" style="background-color: white; color: var(--text-main); border: 1px solid var(--border);" @click="isEditModalOpen = false">
-                  Cancelar
-                </UiButton>
-                <UiButton type="submit" :loading="memberStore.isLoading">
-                  Guardar Cambios
-                </UiButton>
-              </div>
-            </template>
-          </UiCard>
-        </form>
-      </UiModal>
+          </div>
+
+          <template #footer>
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+              <UiButton type="button" style="background-color: white; color: var(--text-main); border: 1px solid var(--border);" @click="isEditModalOpen = false">
+                Cancelar
+              </UiButton>
+              <UiButton type="submit" :loading="memberStore.isLoading">
+                Guardar Cambios
+              </UiButton>
+            </div>
+          </template>
+        </UiCard>
+      </form>
+    </UiModal>
 
     </div>
   </AuthenticatedLayout>
@@ -140,6 +155,8 @@
 <script setup lang="ts">
 import { reactive, onMounted, ref } from 'vue';
 import { useMemberStore } from '@/stores/member.store';
+import { roleService, type Role } from '@/services/role.service';
+import { useAuthStore } from '@/stores/auth.store';
 import type { Member } from '@/types/member';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -148,23 +165,34 @@ import UiInput from '@/components/ui/UiInput.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue'; // Importamos el modal
+import UiSelect from '@/components/ui/UiSelect.vue';
 
+const authStore = useAuthStore();
 const memberStore = useMemberStore();
+const availableRoles = ref<Role[]>([]);
 
 // --- LÓGICA DE AGREGAR MIEMBRO ---
-const addForm = reactive({ name: '', email: '', roleId: 2 });
+const addForm = reactive({ name: '', email: '', roleIds: [] as number[] });
 const newMemberCredentials = ref<{ email: string; password: string } | null>(null);
 
-onMounted(() => { memberStore.fetchMembers(); });
+onMounted(async () => {
+  if (authStore.activeTenantId) {
+    // Cargamos miembros y roles en paralelo
+    await Promise.all([
+      memberStore.fetchMembers(),
+      roleService.getRoles(authStore.activeTenantId).then(r => availableRoles.value = r)
+    ]);
+  }
+});
 
 const handleAddSubmit = async () => {
   newMemberCredentials.value = null;
   try {
-    // Empaquetamos los datos transformando roleId (Vue) a role_id (Zod Backend)
+    // Empaquetamos los datos transformando roleIds (Vue) a role_id (Zod Backend)
     const payload = {
       name: addForm.name,
       email: addForm.email,
-      role_id: addForm.roleId // <-- ¡Aquí está el truco!
+      roleIds: addForm.roleIds
     };
 
     const data = await memberStore.addMember(payload);
@@ -173,35 +201,54 @@ const handleAddSubmit = async () => {
     // Limpiamos el formulario
     addForm.name = ''; 
     addForm.email = ''; 
-    addForm.roleId = 2;
+    addForm.roleIds = [];
   } catch (error) {
     console.error('💥 Error capturado al agregar miembro:', error);
   }
 };
 
-// --- LÓGICA DE EDITAR MIEMBRO ---
+// --- ESTADOS DEL MODAL DE EDICIÓN ---
 const isEditModalOpen = ref(false);
-const editingMember = ref<Member | null>(null);
-const editForm = reactive({ roleId: 2, status: 'active' as 'active' | 'inactive' });
+const editForm = reactive({
+  id: 0,
+  name: '', // Solo visual, para que el admin sepa a quién edita
+  roleIds: [] as number[],
+  status: 'active'
+});
 
-const openEditModal = (member: Member) => {
-  editingMember.value = member;
-  editForm.roleId = member.role_name === 'Owner' ? 1 : 2;
+// Opciones para nuestro nuevo UiSelect
+const statusOptions = [
+  { label: 'Activo', value: 'active' },
+  { label: 'Inactivo', value: 'inactive' }
+];
+
+const openEditModal = (member: any) => {
+  editForm.id = member.id;
+  editForm.name = member.name;
   editForm.status = member.status || 'active';
+  
+  // TRUCO DE MAGIA: El backend nos devuelve un arreglo de nombres (ej: ['Admin', 'Owner'])
+  // Necesitamos convertirlos a IDs (ej: [1, 2]) comparándolos con availableRoles para marcar los checkboxes
+  if (member.roles && member.roles.length > 0) {
+    editForm.roleIds = availableRoles.value
+      .filter(role => member.roles.includes(role.name))
+      .map(role => role.id);
+  } else {
+    editForm.roleIds = [];
+  }
+  
   isEditModalOpen.value = true;
 };
 
-// Y hacemos lo mismo para la edición, por si acaso:
 const handleEditSubmit = async () => {
-  if (!editingMember.value) return;
   try {
-    await memberStore.updateMember(editingMember.value.id, {
-      roleId: editForm.roleId,
+    await memberStore.updateMember(editForm.id, {
+      roleIds: editForm.roleIds,
       status: editForm.status
     });
     isEditModalOpen.value = false;
   } catch (error) {
-    console.error('💥 Error capturado al editar miembro:', error);
+    console.error('Error al editar miembro:', error);
   }
 };
 
