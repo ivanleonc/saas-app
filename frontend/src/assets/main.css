@@ -2,23 +2,51 @@
 
 /* 1. Variables Globales (Estilo shadcn) */
 :root {
-  --bg-app: #f8fafc;
+  --bg-app: #f4f7fb;
   --bg-card: #ffffff;
+  --bg-nav: #ffffff;
   --border: #e2e8f0;
-  --text-main: #020817;
+  --text-main: #0f172a;
   --text-muted: #64748b;
+  --text-light: #94a3b8;
   --primary: #0f172a;
+  --primary-foreground: #ffffff;
+  --primary-active: #f1f5f9;
   --primary-hover: #1e293b;
   --danger-bg: #fef2f2;
   --danger-text: #ef4444;
   --danger-border: #fca5a5;
   
-  /* Variables para la Sidebar Oscura */
-  --sidebar-bg: #09090b;
-  --sidebar-border: #27272a;
-  --sidebar-hover: #27272a;
-  --sidebar-text: #fafafa;
-  --sidebar-muted: #a1a1aa;
+  --nav-icon-bg-hover: #f1f5f9;
+  --nav-icon-active: #0f172a;
+  --nav-icon-active-text: #ffffff;
+  --btn-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --glass-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --bg-app: #020617;        
+  --bg-card: #0f172a;       
+  --bg-nav: #0f172a;       
+  --border: #1e293b;       
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+  --primary: #f8fafc;
+  --primary-foreground: #020617;       
+  --primary-active: #1e293b;
+  --primary-hover: #e2e8f0;
+  --danger-bg: #450a0a;
+  --danger-text: #fca5a5;
+  --danger-border: #991b1b;
+
+  --nav-icon-bg-hover: #1e293b;
+  --nav-icon-active: #f8fafc;
+  --nav-icon-active-text: #0f172a;
+  --btn-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+  --glass-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -29,6 +57,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-main);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* 2. Clases UI Reutilizables (Extraídas de Login/Register) */
@@ -38,7 +67,8 @@ body {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: var(--btn-shadow);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .ui-label {

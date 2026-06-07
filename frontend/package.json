@@ -13,6 +13,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@tabler/icons-vue": "^3.44.0",
     "axios": "^1.16.1",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",

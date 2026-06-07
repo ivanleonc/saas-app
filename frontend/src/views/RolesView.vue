@@ -64,7 +64,7 @@
 
           <template #footer>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
-              <UiButton type="button" style="background-color: white; color: black; border: 1px solid #ccc;" @click="isModalOpen = false">Cancelar</UiButton>
+              <UiButton type="button" variant="outline" @click="isModalOpen = false">Cancelar</UiButton>
               <UiButton type="submit" :loading="isSaving">Guardar Rol</UiButton>
             </div>
           </template>

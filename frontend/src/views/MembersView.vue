@@ -136,7 +136,7 @@
 
           <template #footer>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
-              <UiButton type="button" style="background-color: white; color: var(--text-main); border: 1px solid var(--border);" @click="isEditModalOpen = false">
+              <UiButton type="button" variant="outline" @click="isEditModalOpen = false">
                 Cancelar
               </UiButton>
               <UiButton type="submit" :loading="memberStore.isLoading">
@@ -308,17 +308,17 @@ const handleDelete = async (userId: number, userName: string) => {
 
 /* Caja de Credenciales Temporales */
 .credentials-box {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
   padding: 1rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  color: #166534;
+  color: #22c55e;
 }
 .credentials-box p { margin: 0.25rem 0; }
 .credentials-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem !important; }
-.secret-code { background: #dcfce7; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: monospace; font-size: 1rem; }
-.credentials-note { font-size: 0.75rem; color: #15803d; margin-top: 0.5rem !important; font-style: italic; }
+.secret-code { background: rgba(34, 197, 94, 0.2); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: monospace; font-size: 1rem; }
+.credentials-note { font-size: 0.75rem; color: #166534; margin-top: 0.5rem !important; font-style: italic; }
 
 /* Tabla Estilo Shadcn Nativizado */
 .table-section {
@@ -326,6 +326,7 @@ const handleDelete = async (userId: number, userName: string) => {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   overflow: hidden;
+  box-shadow: var(--glass-shadow);
 }
 .table-wrapper { width: 100%; overflow-x: auto; }
 .ui-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
@@ -334,9 +335,10 @@ const handleDelete = async (userId: number, userName: string) => {
   font-weight: 500;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
-  background: #fafafa;
+  background: var(--bg-app); /* Ahora usa color inteligente en vez de #fafafa fijo */
 }
 .ui-table td { padding: 1rem; border-bottom: 1px solid var(--border); color: var(--text-main); }
+.ui-table tr:hover td { background-color: var(--primary-active); }
 .ui-table tr:last-child td { border-bottom: none; }
 
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
@@ -360,21 +362,21 @@ const handleDelete = async (userId: number, userName: string) => {
 /* Badges */
 .badge-role { font-size: 0.75rem; font-weight: 500; background: var(--bg-app); border: 1px solid var(--border); padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
 .badge-status { font-size: 0.75rem; font-weight: 600; display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; }
-.badge-status.active { background: #e0f2fe; color: #0369a1; }
+.badge-status.active { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
 .text-right { text-align: right; }
 .action-btn { 
   background: transparent; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 500; 
   margin-left: 0.75rem; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;
 }
-.edit-btn { color: #2563eb; }
-.edit-btn:hover { color: #1d4ed8; }
+.edit-btn { color: #38bdf8; }
+.edit-btn:hover { color: #0284c7; }
 .delete-btn { color: var(--danger-text); }
-.delete-btn:hover { color: #b91c1c; }
+.delete-btn:hover { color: #ef4444; }
 /* Estilo específico para el Dueño de la organización */
 .badge-role.owner-badge {
-  background-color: #fffbeb;
-  color: #b45309;
-  border-color: #fde68a;
+  background-color: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
