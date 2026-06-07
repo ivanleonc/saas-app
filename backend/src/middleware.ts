@@ -15,8 +15,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1. Ignorar rutas públicas (Login, Register) - Forzamos minúsculas por seguridad
-  if (path.toLowerCase().includes('/api/auth')) {
+  // 1. Ignorar rutas públicas (Login, Register, Swagger) - Forzamos minúsculas por seguridad
+  if (path.toLowerCase().includes('/api/auth') || path.toLowerCase().includes('/api/docs')) {
     console.log('✅ Ruta pública detectada. Dejando pasar sin Token.');
     return NextResponse.next();
   }

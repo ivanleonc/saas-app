@@ -1,0 +1,528 @@
+openapi: 3.0.3
+info:
+  title: SaaS B2B API
+  description: Descripción completa de la API del SaaS Multi-tenant con funcionalidades de autenticación (JWT), gestión de empresas (Workspaces), control de acceso basado en roles (RBAC) y auditoría integrada.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor de Desarrollo (Next.js)
+
+tags:
+  - name: Auth
+    description: Endpoints de Autenticación y Recuperación de Contraseñas
+  - name: User
+    description: Gestión del Perfil del Usuario
+  - name: Companies
+    description: Gestión de Empresas e Inquilinos (Workspaces)
+  - name: Members
+    description: Gestión de Miembros dentro de una Empresa
+  - name: Roles & Permissions
+    description: Gestión de Roles y Permisos (RBAC)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Introduce tu token JWT de esta manera: Bearer {token}"
+
+  parameters:
+    CompanyIdHeader:
+      in: header
+      name: x-company-id
+      required: true
+      schema:
+        type: string
+      description: ID de la empresa activa sobre la que se está operando. Exigido por el Middleware Zero-Trust.
+
+  schemas:
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tax_id:
+          type: string
+        slug:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        is_super_admin:
+          type: boolean
+        tenants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+          
+    Member:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        roles:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        is_system:
+          type: boolean
+        company_id:
+          type: integer
+          nullable: true
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        module:
+          type: string
+        description:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==========================================
+  # AUTHENTICATION
+  # ==========================================
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Registrar nuevo usuario
+      security: [] # No requiere token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Registro exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AuthResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Iniciar Sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Solicitar recuperación de contraseña
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Se han enviado las instrucciones al correo asíncronamente.
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Restablecer contraseña con Token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                token:
+                  type: string
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente.
+        '400':
+          description: Token inválido o expirado.
+
+  # ==========================================
+  # USER PROFILE
+  # ==========================================
+  /user/profile:
+    get:
+      tags:
+        - User
+      summary: Obtener perfil del usuario autenticado
+      responses:
+        '200':
+          description: OK
+    put:
+      tags:
+        - User
+      summary: Actualizar perfil del usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  description: Opcional, si desea cambiarla
+      responses:
+        '200':
+          description: Perfil actualizado.
+
+  # ==========================================
+  # COMPANIES (WORKSPACES)
+  # ==========================================
+  /companies:
+    get:
+      tags:
+        - Companies
+      summary: Listar las empresas del usuario actual
+      responses:
+        '200':
+          description: Retorna un arreglo de empresas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Company'
+    post:
+      tags:
+        - Companies
+      summary: Crear nueva empresa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                tax_id:
+                  type: string
+      responses:
+        '200':
+          description: Empresa creada.
+          
+  /companies/{companyId}:
+    patch:
+      tags:
+        - Companies
+      summary: Actualizar datos de la empresa
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: integer
+          description: ID de la empresa en la URL
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                tax_id:
+                  type: string
+      responses:
+        '200':
+          description: Empresa actualizada (sólo Owner).
+        '403':
+          description: Operación denegada. Solo el Owner puede modificar la configuración.
+
+  # ==========================================
+  # MEMBERS (COMPANY CONTEXT)
+  # ==========================================
+  /companies/users:
+    get:
+      tags:
+        - Members
+      summary: Listar todos los miembros de la empresa
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      responses:
+        '200':
+          description: Retorna la lista de miembros
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Member'
+
+    post:
+      tags:
+        - Members
+      summary: Invitar / Agregar nuevo miembro a la empresa
+      description: Requiere permisos (users:create). El backend enviará email de bienvenida y auto-generará clave.
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, roleIds]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                roleIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Miembro invitado exitosamente. Las auditorías y correos se ejecutan de fondo.
+
+  /companies/users/{userId}:
+    patch:
+      tags:
+        - Members
+      summary: Actualizar estado o rol de un miembro (Ej. Suspender, Cambiar a Admin)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roleId:
+                  type: integer
+                status:
+                  type: string
+                  enum: [active, inactive, suspended]
+      responses:
+        '200':
+          description: Miembro actualizado.
+          
+    delete:
+      tags:
+        - Members
+      summary: Eliminar(remover) un miembro de la empresa
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      responses:
+        '200':
+          description: Miembro eliminado de la empresa actual. No del sistema central.
+
+  # ==========================================
+  # ROLES & PERMISSIONS
+  # ==========================================
+  /permissions:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: Listar el catálogo maestro de Permisos disponibles
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      responses:
+        '200':
+          description: Lista de permisos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+
+  /roles:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: Listar todos los Roles del sistema y personalizados de la empresa actual
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      responses:
+        '200':
+          description: Lista de roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Crear un rol personalizado para la empresa
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, permissionIds]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                permissionIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Rol personalizado creado con éxito y asignado a la empresa en sesión.
