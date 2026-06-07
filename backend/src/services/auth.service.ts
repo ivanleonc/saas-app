@@ -1,14 +1,18 @@
 import bcrypt from 'bcrypt';
-import { generateToken } from '@/utils/jwt';
+import { generateToken, generateResetToken, verifyResetToken } from '@/utils/jwt';
 import { UserRepository } from '@/repositories/user.repository';
 import { CompanyRepository } from '@/repositories/company.repository';
 import type { IUserRepository } from '@/repositories/interfaces/user.repository.interface';
 import type { ICompanyRepository } from '@/repositories/interfaces/company.repository.interface';
+import { AuditLogService, auditLogService } from '@/services/audit-log.service';
+import { EmailService, emailService } from '@/services/email.service';
 
 export class AuthService {
   constructor(
     private userRepository: IUserRepository,
-    private companyRepository: ICompanyRepository
+    private companyRepository: ICompanyRepository,
+    private auditLogger: AuditLogService,
+    private emailQueue: EmailService
   ) {}
 
   async register(name: string, email: string, passwordPlain: string) {
@@ -32,6 +36,15 @@ export class AuthService {
       id: newUser.id, 
       is_super_admin: newUser.is_super_admin,
       companies: companyIds 
+    });
+
+    this.auditLogger.log({
+      companyId: null,
+      userId: newUser.id,
+      action: 'USER_REGISTERED',
+      modelType: 'User',
+      modelId: newUser.id,
+      newValues: { email: newUser.email, name: newUser.name }
     });
 
     return {
@@ -64,6 +77,14 @@ export class AuthService {
       companies: companyIds 
     });
 
+    this.auditLogger.log({
+      companyId: null,
+      userId: user.id,
+      action: 'USER_LOGIN',
+      modelType: 'User',
+      modelId: user.id
+    });
+
     return {
       message: 'Login exitoso',
       token,
@@ -76,9 +97,61 @@ export class AuthService {
       }
     };
   }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      // Como medida anti-enumeración, no lanzamos un error revelador si el email no existe, 
+      // solo fingimos que se envió.
+      return { message: 'Si el correo existe, se han enviado las instrucciones.' };
+    }
+
+    const resetToken = generateResetToken(user.id, user.password_hash);
+    
+    // Disparar correo asíncrono
+    this.emailQueue.sendPasswordResetEmail(user.email, resetToken);
+    
+    this.auditLogger.log({
+      companyId: null,
+      userId: user.id,
+      action: 'PASSWORD_RESET_REQUESTED',
+      modelType: 'User',
+      modelId: user.id
+    });
+
+    return { message: 'Si el correo existe, se han enviado las instrucciones.' };
+  }
+
+  async resetPassword(email: string, token: string, newPasswordPlain: string) {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new Error('Token inválido o expirado.');
+
+    // Validar el token usando el hash de la contraseña antigua como secreto
+    const decoded = verifyResetToken(token, user.password_hash);
+    if (!decoded || decoded.id !== user.id) {
+      throw new Error('Token inválido o expirado.');
+    }
+
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPasswordPlain, saltRounds);
+
+    await this.userRepository.updatePassword(user.id, newPasswordHash);
+
+    this.auditLogger.log({
+      companyId: null,
+      userId: user.id,
+      action: 'PASSWORD_RESET_COMPLETED',
+      modelType: 'User',
+      modelId: user.id
+    });
+
+    return { message: 'Contraseña actualizada correctamente.' };
+  }
 }
 
 export const authService = new AuthService(
   new UserRepository(),
-  new CompanyRepository()
+  new CompanyRepository(),
+  auditLogService,
+  emailService
 );

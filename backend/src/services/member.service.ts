@@ -4,12 +4,16 @@ import { UserRepository } from '@/repositories/user.repository';
 import { CompanyRepository } from '@/repositories/company.repository';
 import type { IUserRepository } from '@/repositories/interfaces/user.repository.interface';
 import type { ICompanyRepository } from '@/repositories/interfaces/company.repository.interface';
+import { AuditLogService, auditLogService } from '@/services/audit-log.service';
+import { EmailService, emailService } from '@/services/email.service';
 
 export class MemberService {
   // Aquí ocurre la Inyección de Dependencias
   constructor(
     private userRepository: IUserRepository,
-    private companyRepository: ICompanyRepository
+    private companyRepository: ICompanyRepository,
+    private auditLogger: AuditLogService,
+    private emailQueue: EmailService
   ) {}
 
   // Quitamos la palabra "static"
@@ -41,6 +45,21 @@ export class MemberService {
 
       await client.query('COMMIT');
       
+      // === LOG DE AUDITORÍA ===
+      this.auditLogger.log({
+        companyId,
+        userId: operatorId,
+        action: 'MEMBER_INVITED',
+        modelType: 'User',
+        modelId: newUser.id,
+        newValues: { email: newUser.email, roles: roleIds }
+      });
+
+      // === ENVÍO DE CORREO (ASYNC - NO BLOQUEANTE) ===
+      this.emailQueue.sendWelcomeEmail(newUser.email, newUser.name, temporaryPassword);
+
+      // Ahora podemos optar por NO retornar la llave 'temporary_password' al frontend,
+      // pero la dejaremos por ahora si tu vista de Vue aún la necesita renderizar.
       return {
         id: newUser.id,
         name: newUser.name,
@@ -80,6 +99,16 @@ export class MemberService {
     
     // 2. Ejecutar actualización
     await this.companyRepository.updateCompanyUser(companyId, targetUserId, data);
+
+    // === LOG DE AUDITORÍA ===
+    this.auditLogger.log({
+      companyId,
+      userId: operatorId,
+      action: 'MEMBER_UPDATED',
+      modelType: 'User',
+      modelId: targetUserId,
+      newValues: data
+    });
   }
 
   // Eliminar miembro
@@ -92,6 +121,15 @@ export class MemberService {
     }
 
     await this.companyRepository.removeCompanyUser(companyId, targetUserId);
+
+    // === LOG DE AUDITORÍA ===
+    this.auditLogger.log({
+      companyId,
+      userId: operatorId,
+      action: 'MEMBER_REMOVED',
+      modelType: 'User',
+      modelId: targetUserId
+    });
   }
 }
 
@@ -100,5 +138,7 @@ export class MemberService {
 // ==========================================
 export const memberService = new MemberService(
   new UserRepository(),
-  new CompanyRepository()
+  new CompanyRepository(),
+  auditLogService,
+  emailService
 );

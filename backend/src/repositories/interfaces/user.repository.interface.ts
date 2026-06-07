@@ -13,4 +13,5 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<IUserContent | null>;
   create(name: string, email: string, passwordHash: string): Promise<IUserContent>;
   createWithClient(client: PoolClient, name: string, email: string, passwordHash: string): Promise<IUserContent>;
+  updatePassword(userId: number, newPasswordHash: string): Promise<void>;
 }

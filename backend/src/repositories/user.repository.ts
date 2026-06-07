@@ -29,4 +29,11 @@ export class UserRepository implements IUserRepository {
     );
     return result.rows[0];
   }
+
+  async updatePassword(userId: number, newPasswordHash: string): Promise<void> {
+    await pool.query(
+      `UPDATE users SET password_hash = $1 WHERE id = $2`,
+      [newPasswordHash, userId]
+    );
+  }
 }

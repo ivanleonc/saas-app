@@ -62,6 +62,7 @@ const handleLogin = async () => {
           </UiButton>
           
           <div class="auth-footer-links">
+            <p style="margin-bottom: 0.5rem;"><router-link to="/forgot-password">¿Olvidaste tu contraseña?</router-link></p>
             <p>¿No tienes una cuenta? <router-link to="/register">Regístrate</router-link></p>
           </div>
         </template>
