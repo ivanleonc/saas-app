@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import App from './App.vue';
 import router from './router';
 import { permissionDirective } from './directives/permission';
@@ -11,6 +12,7 @@ const app = createApp(App);
 
 // 1. Instanciar Pinia PRIMERO
 const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
 
 // 2. Instanciar el Router SEGUNDO

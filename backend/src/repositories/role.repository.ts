@@ -1,6 +1,7 @@
 import { pool } from '@/config/db';
+import type { IRoleRepository } from './interfaces/role.repository.interface';
 
-export class RoleRepository {
+export class RoleRepository implements IRoleRepository {
   // NUEVO: Ahora recibe el companyId
   async getRolesWithPermissions(companyId: number) {
     const query = `

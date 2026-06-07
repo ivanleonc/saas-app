@@ -2,12 +2,14 @@ import bcrypt from 'bcrypt';
 import { pool } from '@/config/db';
 import { UserRepository } from '@/repositories/user.repository';
 import { CompanyRepository } from '@/repositories/company.repository';
+import type { IUserRepository } from '@/repositories/interfaces/user.repository.interface';
+import type { ICompanyRepository } from '@/repositories/interfaces/company.repository.interface';
 
 export class MemberService {
   // Aquí ocurre la Inyección de Dependencias
   constructor(
-    private userRepository: UserRepository,
-    private companyRepository: CompanyRepository
+    private userRepository: IUserRepository,
+    private companyRepository: ICompanyRepository
   ) {}
 
   // Quitamos la palabra "static"

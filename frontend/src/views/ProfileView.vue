@@ -14,8 +14,8 @@
             </template>
 
             <div class="form-body">
-              <UiAlert v-if="errorMessage">{{ errorMessage }}</UiAlert>
-              <div v-if="successMessage" class="success-alert">{{ successMessage }}</div>
+              <UiAlert v-if="errorMessage" type="error">{{ errorMessage }}</UiAlert>
+              <UiAlert v-if="successMessage" type="success">{{ successMessage }}</UiAlert>
 
               <UiInput v-model="form.name" label="Nombre Completo" required />
               <UiInput v-model="form.email" label="Correo Electrónico" type="email" required />
@@ -102,13 +102,4 @@ const handleSave = async () => {
 .page-subtitle { margin: 0.5rem 0 0; color: var(--text-muted); }
 .card-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: var(--text-main); }
 .form-body { display: flex; flex-direction: column; gap: 1rem; }
-.success-alert {
-  background-color: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
 </style>

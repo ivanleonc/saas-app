@@ -1,7 +1,8 @@
 import { pool } from '@/config/db';
 import type { PoolClient } from 'pg';
+import type { IUserRepository } from './interfaces/user.repository.interface';
 
-export class UserRepository {
+export class UserRepository implements IUserRepository {
   async findByEmail(email: string) {
     const result = await pool.query('SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL', [email]);
     return result.rows[0];

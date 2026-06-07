@@ -22,7 +22,7 @@ export const useCompanyStore = defineStore('company', () => {
         if (tenant) {
           if (payload.name) tenant.name = payload.name;
           if (payload.tax_id !== undefined) tenant.tax_id = payload.tax_id;
-          localStorage.setItem('saas_user', JSON.stringify(authStore.user));
+          // pinia-plugin-persistedstate en useAuthStore ya se encarga automáticamente
         }
       }
       
@@ -59,13 +59,12 @@ export const useCompanyStore = defineStore('company', () => {
         if (!authStore.user.tenants) authStore.user.tenants = [];
         authStore.user.tenants.push(newTenant);
         
-        // 1. Actualizamos el usuario en el disco duro
-        localStorage.setItem('saas_user', JSON.stringify(authStore.user));
+        // El plugin de Pinia persiste authStore.user automáticamente
         
-        // 2. ¡EL TRUCO DE MAGIA! Cambiamos el token viejo por el nuevo en tiempo real
-        localStorage.setItem('saas_token', newToken);
+        // 2. Actualizamos el token de sesión (authStore expone método)
+        authStore.updateToken(newToken);
         
-        // 3. Hacemos el cambio en la vista
+        // 3. Hacemos el cambio en la vista (persiste automáticamente el activeTenantId)
         authStore.setActiveTenant(newCompany.id);
       }
       

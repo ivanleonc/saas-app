@@ -1,7 +1,8 @@
 import { CompanyRepository } from '@/repositories/company.repository';
+import type { ICompanyRepository } from '@/repositories/interfaces/company.repository.interface';
 
 export class CompanyService {
-  constructor(private companyRepository: CompanyRepository) {}
+  constructor(private companyRepository: ICompanyRepository) {}
 
   async getUserCompanies(userId: number) {
     // Retornamos directamente lo que viene de la base de datos

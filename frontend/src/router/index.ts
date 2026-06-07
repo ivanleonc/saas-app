@@ -90,7 +90,7 @@ router.beforeEach((to, from) => {
   }
 
   if (to.meta.requiredPermission) {
-    const activeTenant = authStore.user?.tenants?.find(t => t.id === authStore.activeTenantId);
+    const activeTenant = authStore.user?.tenants?.find((t: any) => t.id === authStore.activeTenantId);
     const isOwner = activeTenant?.roles?.includes('Owner');
     const hasPerm = activeTenant?.permissions?.includes(to.meta.requiredPermission as string);
 

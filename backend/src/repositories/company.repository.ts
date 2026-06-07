@@ -1,6 +1,8 @@
 import { pool } from '@/config/db';
 import type { PoolClient } from 'pg';
-export class CompanyRepository {
+import type { ICompanyRepository } from './interfaces/company.repository.interface';
+
+export class CompanyRepository implements ICompanyRepository {
   async getUserCompanies(userId: number) {
     const query = `
       SELECT 

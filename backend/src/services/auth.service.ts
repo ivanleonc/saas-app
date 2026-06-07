@@ -1,12 +1,14 @@
 import bcrypt from 'bcrypt';
+import { generateToken } from '@/utils/jwt';
 import { UserRepository } from '@/repositories/user.repository';
 import { CompanyRepository } from '@/repositories/company.repository';
-import { generateToken } from '@/utils/jwt';
+import type { IUserRepository } from '@/repositories/interfaces/user.repository.interface';
+import type { ICompanyRepository } from '@/repositories/interfaces/company.repository.interface';
 
 export class AuthService {
   constructor(
-    private userRepository: UserRepository,
-    private companyRepository: CompanyRepository
+    private userRepository: IUserRepository,
+    private companyRepository: ICompanyRepository
   ) {}
 
   async register(name: string, email: string, passwordPlain: string) {
