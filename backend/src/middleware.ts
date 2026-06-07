@@ -33,9 +33,15 @@ export async function middleware(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, SECRET);
     const requestHeaders = new Headers(request.headers);
+    
+    // Inyectamos el ID del usuario en los headers para que los controladores lo consuman de forma segura
     requestHeaders.set('x-user-id', String(payload.id));
 
+    // Rutas exentas de obligatoriedad de Company ID (ej: Perfil, crear/listar empresas)
+    const isExemptRoute = path.match(/^\/api\/(user|companies$)/);
+
     const companyId = request.headers.get('x-company-id');
+    
     if (companyId) {
       const userCompanies = (payload.companies as number[]) || [];
       const requestedCompanyId = parseInt(companyId, 10);
@@ -47,6 +53,16 @@ export async function middleware(request: NextRequest) {
           { status: 403 }
         );
       }
+      
+      // Inyectamos el Company ID purificado y verificado
+      requestHeaders.set('x-company-id', String(requestedCompanyId));
+    } else if (!isExemptRoute) {
+      // Política Zero-Trust: Si la ruta requiere contexto (ej: /members) y no mandó el ID, se bloquea.
+      console.log(`❌ Petición bloqueada: Falta cabecera x-company-id en ruta protegida (${path}).`);
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado. Se requiere el contexto de la empresa (x-company-id).' }, 
+        { status: 400 }
+      );
     }
 
     return NextResponse.next({ request: { headers: requestHeaders } });

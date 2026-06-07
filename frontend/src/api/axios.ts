@@ -16,6 +16,20 @@ apiClient.interceptors.request.use(
       // Usamos la asignación de diccionario que es a prueba de fallos en cualquier versión de Axios
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // Política Zero-Trust: Adjuntamos automáticamente en cada petición el Company ID activo
+    try {
+      const storageData = localStorage.getItem('saas_auth_storage');
+      if (storageData) {
+        const parsed = JSON.parse(storageData);
+        if (parsed.activeTenantId && config.headers) {
+          config.headers['x-company-id'] = String(parsed.activeTenantId);
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo leer el id de la empresa del storage local');
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
