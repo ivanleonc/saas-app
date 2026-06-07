@@ -7,29 +7,29 @@
         <aside class="left-nav">
           <div class="left-nav-top">
             <button class="icon-btn theme-toggle" @click="toggleTheme">
-              <svg v-if="!isDarkMode" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line></svg>
-              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <IconSun v-if="!isDarkMode" :size="20" stroke-width="2" />
+              <IconMoon v-else :size="20" stroke-width="2" />
             </button>
           </div>
           
           <div class="left-nav-center">
             <router-link to="/dashboard" class="nav-icon-link" exact-active-class="active">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <IconLayoutDashboard :size="22" stroke-width="1.8" />
             </router-link>
             <router-link to="/dashboard/members" class="nav-icon-link" active-class="active">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              <IconUsers :size="22" stroke-width="1.8" />
             </router-link>
             <router-link to="/dashboard/roles" class="nav-icon-link" active-class="active" v-permission="'roles:read'">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path><path d="M4 21v-2a4 4 0 0 1 3-3.87"></path><path d="M8 3.13a4 4 0 0 0 0 7.75"></path></svg>
+              <IconShieldLock :size="22" stroke-width="1.8" />
             </router-link>
             <router-link to="/dashboard/settings" class="nav-icon-link" active-class="active">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <IconSettings :size="22" stroke-width="1.8" />
             </router-link>
           </div>
 
           <div class="left-nav-bottom">
             <button class="icon-btn help-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <IconHelpCircle :size="22" stroke-width="1.8" />
             </button>
             <div class="avatar-small">
               <img v-if="userAvatar" :src="userAvatar" alt="User" />
@@ -40,7 +40,7 @@
 
         <main class="main-content">
           <header class="content-header" v-if="breadcrumbs.length > 1">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); cursor: pointer; margin-right: 1rem;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            <IconLayoutSidebar :size="20" stroke-width="2" style="color: var(--text-muted); cursor: pointer; margin-right: 1rem;" />
             
             <nav class="breadcrumb">
               <ol>
@@ -49,7 +49,7 @@
                     {{ item.name }}
                   </router-link>
                   <span v-else class="breadcrumb-current">{{ item.name }}</span>
-                  <svg v-if="!item.isLast" class="breadcrumb-separator" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <IconChevronRight v-if="!item.isLast" class="breadcrumb-separator" :size="16" stroke-width="2" />
                 </li>
               </ol>
             </nav>
@@ -70,6 +70,17 @@ import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import AppSidebar from '@/components/layout/AppSidebar.vue';
+import { 
+  IconSun, 
+  IconMoon, 
+  IconLayoutDashboard, 
+  IconUsers, 
+  IconShieldLock, 
+  IconSettings, 
+  IconHelpCircle,
+  IconLayoutSidebar,
+  IconChevronRight
+} from '@tabler/icons-vue';
 
 const route = useRoute();
 const authStore = useAuthStore();

@@ -7,11 +7,11 @@
           <div v-if="isCompanyDropdownOpen" class="dropdown-overlay" @click="isCompanyDropdownOpen = false"></div>
           
           <div class="brand-trigger" @click="isCompanyDropdownOpen = !isCompanyDropdownOpen">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brand-icon"><path d="M7 21V7a2 2 0 012-2h6a2 2 0 012 2v14"/><path d="M9 21h6"/></svg>
+            <IconDeviceAnalytics class="brand-icon" :size="24" stroke-width="2.5" />
             <span class="brand-text">ILC</span>
             <span class="tenant-slash">/</span>
             <span class="active-tenant-name">{{ activeCompany?.name || 'Mi Empresa' }}</span>
-            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <IconChevronDown class="chevron-icon" :size="16" stroke-width="2" />
           </div>
 
           <div v-if="isCompanyDropdownOpen" class="tenant-dropdown-menu company-menu">
@@ -26,12 +26,12 @@
             >
               <div class="tenant-logo-small">{{ tenant.name.substring(0,2).toUpperCase() }}</div>
               <span class="dropdown-tenant-name">{{ tenant.name }}</span>
-              <svg v-if="authStore.activeTenantId === tenant.id" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <IconCheck v-if="authStore.activeTenantId === tenant.id" class="check-icon" :size="16" stroke-width="2" />
             </div>
 
             <div class="dropdown-divider"></div>
             <div class="dropdown-item create-action" @click="openCreateModal">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <IconBuildingStore :size="16" stroke-width="2" style="margin-right:0.25rem" />
               <span class="dropdown-tenant-name">Crear nueva empresa</span>
             </div>
           </div>
@@ -61,33 +61,32 @@
 
     <div class="topbar-right">
       <div class="action-icons">
-        <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <IconSearch class="action-icon" :size="20" stroke-width="2" />
+        <IconBell class="action-icon" :size="20" stroke-width="2" />
         <!-- Mobile Menu Toggle -->
-        <svg class="mobile-menu-btn action-icon" @click="isMobileMenuOpen = !isMobileMenuOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <IconMenu2 class="mobile-menu-btn action-icon" @click="isMobileMenuOpen = !isMobileMenuOpen" :size="24" stroke-width="2" />
       </div>
 
       <div class="tenant-dropdown-container user-dropdown">
         <div v-if="isUserDropdownOpen" class="dropdown-overlay" @click="isUserDropdownOpen = false"></div>
         <div class="user-profile" @click="isUserDropdownOpen = !isUserDropdownOpen">
-          <div class="avatar">{{ userInitials }}</div>
-          <div class="user-info">
-            <span class="user-name">{{ authStore.user?.name || 'Usuario' }}</span>
-            <span class="user-email">{{ authStore.user?.email || 'user@example.com' }}</span>
+            <div class="avatar">{{ userInitials }}</div>
+            <div class="user-info">
+              <span class="user-name">{{ authStore.user?.name || 'Usuario' }}</span>
+              <span class="user-email">{{ authStore.user?.email || 'user@example.com' }}</span>
+            </div>
+            <IconChevronDown class="chevron-icon" :size="16" stroke-width="2" />
           </div>
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </div>
-
         <div v-if="isUserDropdownOpen" class="tenant-dropdown-menu">
           <div class="dropdown-label">Mi Cuenta</div>
           <div class="dropdown-item" @click="router.push('/dashboard/profile'); isUserDropdownOpen = false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <IconUserCircle :size="16" stroke-width="2" style="margin-right:0.25rem" />
             <span class="dropdown-tenant-name">Ir al Perfil</span>
           </div>
           
           <div class="dropdown-divider"></div>
           <div class="dropdown-item" style="color: #ef4444;" @click="handleLogout">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <IconLogout :size="16" stroke-width="2" style="margin-right:0.25rem" />
             <span class="dropdown-tenant-name">Cerrar Sesión</span>
           </div>
         </div>
@@ -137,6 +136,21 @@ import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
+import { 
+  IconMenu2, 
+  IconBell, 
+  IconSearch, 
+  IconChevronDown, 
+  IconCheck,
+  IconBuildingStore,
+  IconUserCircle,
+  IconLogout,
+  IconLayoutDashboard,
+  IconUsers,
+  IconShieldLock,
+  IconSettings,
+  IconDeviceAnalytics // Brand Icon replacement
+} from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();

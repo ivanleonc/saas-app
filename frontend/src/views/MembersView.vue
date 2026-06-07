@@ -70,12 +70,7 @@
                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                       <span v-for="role in member.roles" :key="role" class="badge-role"
                         :class="{ 'owner-badge': role === 'Owner' || role === 'owner' }">
-                        <svg v-if="role === 'Owner' || role === 'owner'" width="12" height="12" viewBox="0 0 24 24"
-                          fill="currentColor" style="margin-right: 4px; color: #d97706;">
-                          <path
-                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
-                          </path>
-                        </svg>
+                        <IconCrown v-if="role === 'Owner' || role === 'owner'" :size="14" stroke-width="2" style="margin-right: 4px; color: #d97706;" />
                         {{ role }}
                       </span>
                     </div>
@@ -166,6 +161,7 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue'; // Importamos el modal
 import UiSelect from '@/components/ui/UiSelect.vue';
+import { IconCrown } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
