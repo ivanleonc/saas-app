@@ -2,6 +2,9 @@
   <div class="layout-container">
     <header class="topbar">
       <div class="topbar-left">
+        <button class="mobile-menu-btn" @click="toggleMobileSidebar">
+          <IconMenu2 :size="20" stroke-width="1.8" />
+        </button>
         <router-link to="/dashboard" class="topbar-logo">
           <IconBolt :size="22" stroke-width="2.5" />
         </router-link>
@@ -98,7 +101,17 @@
     </header>
 
     <div class="layout-body">
-      <aside class="sidebar">
+      <div v-if="isMobileSidebarOpen" class="mobile-backdrop" @click="isMobileSidebarOpen = false"></div>
+      <!-- El sidebar usa los eventos de JS para ignorar los parpadeos del DOM -->
+      <aside 
+        class="sidebar" 
+        :class="{ 'is-expanded': isSidebarExpanded, 'mobile-open': isMobileSidebarOpen }"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
+        <button class="mobile-close-btn" @click="isMobileSidebarOpen = false">
+          <IconX :size="18" stroke-width="1.8" />
+        </button>
         <nav class="sidebar-nav">
           <router-link to="/dashboard" class="nav-link" exact-active-class="active">
             <IconLayoutDashboard :size="22" stroke-width="1.8" />
@@ -155,8 +168,18 @@
     </UiModal>
   </div>
 </template>
+
+<script lang="ts">
+import { ref } from 'vue';
+
+// Al declarar esto fuera de "setup", la variable se vuelve persistente en memoria.
+// Vue Router puede hacer lo que quiera, pero el sidebar "recordará" si está expandido.
+const isSidebarExpanded = ref(false);
+let sidebarHoverTimeout: ReturnType<typeof setTimeout> | null = null;
+</script>
+
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted } from 'vue';
+import { computed, reactive, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMemberStore } from '@/stores/member.store';
@@ -182,6 +205,8 @@ import {
   IconSearch,
   IconBuildingCommunity,
   IconArrowsUpDown,
+  IconMenu2,
+  IconX,
 } from '@tabler/icons-vue';
 
 const route = useRoute();
@@ -196,6 +221,33 @@ const isUserDropdownOpen = ref(false);
 const isCreateModalOpen = ref(false);
 const orgSearchQuery = ref('');
 const createForm = reactive({ name: '', tax_id: '' });
+
+const isMobileSidebarOpen = ref(false);
+
+const toggleMobileSidebar = () => {
+  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+};
+
+// Close mobile sidebar on route change
+watch(() => route.path, () => {
+  isMobileSidebarOpen.value = false;
+});
+
+// Controladores súper suaves para el Sidebar
+const handleMouseEnter = () => {
+  if (sidebarHoverTimeout) {
+    clearTimeout(sidebarHoverTimeout);
+    sidebarHoverTimeout = null;
+  }
+  isSidebarExpanded.value = true;
+};
+
+const handleMouseLeave = () => {
+  // Solo se cierra si el mouse está fuera más de 150ms reales
+  sidebarHoverTimeout = setTimeout(() => {
+    isSidebarExpanded.value = false;
+  }, 150);
+};
 
 const activeOrg = computed(() =>
   authStore.user?.tenants?.find((t: any) => t.id === authStore.activeTenantId) || null
@@ -256,8 +308,9 @@ const handleCreateSubmit = async () => {
   }
 };
 
-const handleLogout = () => {
-  authStore.logout();
+const handleLogout = async () => {
+  isUserDropdownOpen.value = false;
+  await authStore.logout();
   router.push('/login');
 };
 
@@ -265,7 +318,14 @@ onMounted(() => {
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'light') {
     isDarkMode.value = false;
-  } else if (!savedTheme && !window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.remove('dark');
+  } else if (savedTheme === 'dark') {
+    isDarkMode.value = true;
+    document.documentElement.classList.add('dark');
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    isDarkMode.value = true;
+    document.documentElement.classList.add('dark');
+  } else {
     isDarkMode.value = false;
     document.documentElement.classList.remove('dark');
   }
@@ -635,7 +695,7 @@ onMounted(() => {
   position: relative;
 }
 
-/* SIDEBAR - fixed position, overlay on hover */
+/* SIDEBAR - fixed position */
 .sidebar {
   position: fixed;
   top: var(--topbar-height);
@@ -652,19 +712,20 @@ onMounted(() => {
   z-index: 20;
 }
 
-.sidebar:hover {
+/* Estilos de expansión ahora controlados 100% por Vue */
+.sidebar.is-expanded {
   width: var(--sidebar-width);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
 }
 
-.sidebar:hover .nav-label {
+.sidebar.is-expanded .nav-label {
   opacity: 1;
   width: auto;
   margin-left: 0;
   transition: opacity 0.18s ease 0.06s;
 }
 
-.sidebar:hover .nav-link {
+.sidebar.is-expanded .nav-link {
   justify-content: flex-start;
   padding: var(--space-2) var(--space-3);
   gap: var(--space-3);
@@ -678,7 +739,7 @@ onMounted(() => {
   transition: opacity 0.1s ease, width 0s ease 0.15s, margin 0s ease 0.15s;
 }
 
-.sidebar:hover .sidebar-bottom .nav-label {
+.sidebar.is-expanded .sidebar-bottom .nav-label {
   transition: opacity 0.18s ease 0.1s;
 }
 
@@ -742,19 +803,63 @@ onMounted(() => {
   gap: var(--space-2);
 }
 
+/* MOBILE BUTTONS */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--text-main);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background-color 0.15s;
+}
+.mobile-menu-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.mobile-close-btn {
+  display: none;
+}
+
+.mobile-backdrop {
+  display: none;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+  .sidebar .mobile-close-btn {
+    display: flex;
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+    z-index: 5;
+  }
   .sidebar {
     width: var(--sidebar-width);
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: none;
   }
-  .sidebar:hover {
+  .sidebar.is-expanded {
     width: var(--sidebar-width);
-    box-shadow: none;
   }
-  .sidebar:hover .nav-label {
+  .sidebar.is-expanded .nav-label {
     opacity: 1;
     width: auto;
     margin-left: 0;
@@ -766,6 +871,23 @@ onMounted(() => {
   .sidebar.mobile-open {
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .sidebar.mobile-open .nav-label {
+    opacity: 1;
+    width: auto;
+    margin-left: 0;
+  }
+  .sidebar.mobile-open .nav-link {
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-3);
+  }
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 19;
   }
   .main-content {
     margin-left: 0;
