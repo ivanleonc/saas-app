@@ -66,19 +66,23 @@
         <div class="quick-actions">
           <h3 class="section-title">Accesos Rápidos</h3>
           <div class="actions-grid">
-            <router-link to="/dashboard/members" class="action-card">
+            <router-link :to="companyPath('/members')" class="action-card">
               <IconUsers :size="18" />
               <span>Gestionar Miembros</span>
             </router-link>
-            <router-link to="/dashboard/roles" class="action-card" v-permission="Permissions.ROLES.READ">
+            <router-link :to="companyPath('/branches')" class="action-card" v-permission="Permissions.BRANCHES.READ">
+              <IconBuildingCommunity :size="18" />
+              <span>Gestionar Sedes</span>
+            </router-link>
+            <router-link :to="companyPath('/roles')" class="action-card" v-permission="Permissions.ROLES.READ">
               <IconShieldLock :size="18" />
               <span>Configurar Roles</span>
             </router-link>
-            <router-link to="/dashboard/settings" class="action-card">
+            <router-link :to="companyPath('/settings')" class="action-card">
               <IconSettings :size="18" />
               <span>Ajustes Empresa</span>
             </router-link>
-            <router-link to="/dashboard/profile" class="action-card">
+            <router-link :to="companyPath('/profile')" class="action-card">
               <IconUserCircle :size="18" />
               <span>Mi Perfil</span>
             </router-link>
@@ -93,6 +97,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMemberStore } from '@/stores/member.store';
+import { useCompanyPath } from '@/composables/useCompanyPath';
 import { roleService } from '@/services/role.service';
 import { Permissions } from '@/constants/permissions';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -101,6 +106,7 @@ import {
   IconUsers,
   IconShieldLock,
   IconBuildingStore,
+  IconBuildingCommunity,
   IconMail,
   IconSettings,
   IconUserCircle,
@@ -108,6 +114,7 @@ import {
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
+const { companyPath } = useCompanyPath();
 
 const isLoading = ref(true);
 const totalRoles = ref(0);

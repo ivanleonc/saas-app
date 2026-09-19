@@ -22,7 +22,7 @@ export class AuditLogInterceptor implements NestInterceptor {
 
         this.auditLogService.log({
           userId: user?.id,
-          companyId: user?.companies?.[0],
+          companyId: headers['x-company-id'] || user?.tenants?.[0]?.id,
           action,
           entityType: this.extractEntityType(url),
           entityId: this.extractEntityId(url, body),

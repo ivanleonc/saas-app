@@ -100,6 +100,7 @@
 import { ref, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { useCompanyPath } from '@/composables/useCompanyPath';
 import { authService } from '@/services/auth.service';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -110,6 +111,7 @@ import UiAlert from '@/components/ui/UiAlert.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const { companyPath } = useCompanyPath();
 
 const isLoading = ref(false);
 const errorMsg = ref('');
@@ -199,7 +201,7 @@ const handleSubmit = async () => {
     form.currentPassword = '';
     form.newPassword = '';
     form.confirmPassword = '';
-    setTimeout(() => router.push('/dashboard'), 1500);
+    setTimeout(() => router.push(companyPath('/dashboard')), 1500);
   } catch (error: any) {
     errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contraseña';
   } finally {

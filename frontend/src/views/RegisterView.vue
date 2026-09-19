@@ -76,7 +76,8 @@ const handleRegister = async () => {
       email: form.email, 
       password: form.password 
     });
-    router.push('/dashboard');
+    const tenantId = authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+    router.push(`/companies/${tenantId}/dashboard`);
   } catch (error) {
     // Error manejado por Pinia
   }

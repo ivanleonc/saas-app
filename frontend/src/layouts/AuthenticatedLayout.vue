@@ -5,7 +5,7 @@
         <button class="mobile-menu-btn" @click="toggleMobileSidebar">
           <IconMenu2 :size="20" stroke-width="1.8" />
         </button>
-        <router-link to="/dashboard" class="topbar-logo">
+        <router-link :to="companyPath('/dashboard')" class="topbar-logo">
           <IconBolt :size="22" stroke-width="2.5" />
         </router-link>
         <IconChevronRight :size="14" class="topbar-sep" />
@@ -44,7 +44,7 @@
         </div>
 
         <!-- Breadcrumbs -->
-        <nav class="topbar-breadcrumb" v-if="breadcrumbs.length > 1">
+        <nav class="topbar-breadcrumb" v-if="breadcrumbs.length > 0">
           <IconChevronRight :size="12" class="breadcrumb-sep" />
           <ol>
             <li v-for="(item, index) in breadcrumbs" :key="index">
@@ -74,7 +74,7 @@
               <span class="user-dropdown-email">{{ authStore.user?.email }}</span>
             </div>
             <div class="dropdown-divider"></div>
-            <div class="dropdown-item" @click="router.push('/dashboard/profile'); isUserDropdownOpen = false">
+            <div class="dropdown-item" @click="router.push(companyPath('/profile')); isUserDropdownOpen = false">
               <IconUserCircle :size="16" />
               <span>Mi Cuenta</span>
             </div>
@@ -113,19 +113,23 @@
           <IconX :size="18" stroke-width="1.8" />
         </button>
         <nav class="sidebar-nav">
-          <router-link to="/dashboard" class="nav-link" exact-active-class="active">
+          <router-link :to="companyPath('/dashboard')" class="nav-link" exact-active-class="active">
             <IconLayoutDashboard :size="22" stroke-width="1.8" />
             <span class="nav-label">Projects</span>
           </router-link>
-          <router-link to="/dashboard/members" class="nav-link" active-class="active">
+          <router-link :to="companyPath('/members')" class="nav-link" active-class="active">
             <IconUsers :size="22" stroke-width="1.8" />
             <span class="nav-label">Team</span>
           </router-link>
-          <router-link to="/dashboard/roles" class="nav-link" active-class="active" v-permission="Permissions.ROLES.READ">
+          <router-link :to="companyPath('/branches')" class="nav-link" active-class="active" v-permission="Permissions.BRANCHES.READ">
+            <IconBuildingCommunity :size="22" stroke-width="1.8" />
+            <span class="nav-label">Sedes</span>
+          </router-link>
+          <router-link :to="companyPath('/roles')" class="nav-link" active-class="active" v-permission="Permissions.ROLES.READ">
             <IconShieldLock :size="22" stroke-width="1.8" />
             <span class="nav-label">Roles</span>
           </router-link>
-          <router-link to="/dashboard/settings" class="nav-link" active-class="active">
+          <router-link :to="companyPath('/settings')" class="nav-link" active-class="active">
             <IconSettings :size="22" stroke-width="1.8" />
             <span class="nav-label">Settings</span>
           </router-link>
@@ -184,6 +188,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyStore } from '@/stores/company.store';
 import { useTheme } from '@/composables/useTheme';
+import { useCompanyPath } from '@/composables/useCompanyPath';
 import { Permissions } from '@/constants/permissions';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -215,6 +220,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const companyStore = useCompanyStore();
 const { isDarkMode, applyTheme, toggleTheme } = useTheme();
+const { companyId, companyPath } = useCompanyPath();
 
 const isOrgDropdownOpen = ref(false);
 const isUserDropdownOpen = ref(false);
@@ -265,13 +271,13 @@ const filteredTenants = computed(() => {
 });
 
 const breadcrumbs = computed(() => {
-  const paths = route.path.split('/').filter(p => p);
-  return paths.map((path, index) => {
-    const url = '/' + paths.slice(0, index + 1).join('/');
-    let name = path.charAt(0).toUpperCase() + path.slice(1);
-    if (name === 'Members') name = 'Team';
-    return { name, url, isLast: index === paths.length - 1 };
-  });
+  const match = route.path.match(/\/companies\/[^/]+\/(.+)/);
+  if (!match) return [];
+
+  const segment = match[1].split('/')[0];
+  let name = segment.charAt(0).toUpperCase() + segment.slice(1);
+  if (name === 'Members') name = 'Team';
+  return [{ name, url: route.path, isLast: true }];
 });
 
 const setTheme = (dark: boolean) => {
@@ -282,6 +288,7 @@ const handleOrgChange = (tenantId: string) => {
   authStore.setActiveTenant(tenantId);
   isOrgDropdownOpen.value = false;
   orgSearchQuery.value = '';
+  router.push(`/companies/${tenantId}/dashboard`);
 };
 
 const openCreateModal = () => {
@@ -296,7 +303,8 @@ const handleCreateSubmit = async () => {
   try {
     await companyStore.createCompany({ name: createForm.name, tax_id: createForm.tax_id });
     isCreateModalOpen.value = false;
-    router.push('/dashboard');
+    const newTenantId = authStore.activeTenantId;
+    router.push(`/companies/${newTenantId}/dashboard`);
   } catch (error) {
     console.error('Error al crear la empresa', error);
   }

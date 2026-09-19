@@ -5,7 +5,7 @@ import { Permissions } from '@/constants/permissions';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/dashboard',
+    redirect: '/login',
   },
   {
     path: '/login',
@@ -32,37 +32,47 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresGuest: true },
   },
   {
-    path: '/dashboard',
+    path: '/companies/:companyId',
+    redirect: (to) => `/companies/${to.params.companyId}/dashboard`,
+  },
+  {
+    path: '/companies/:companyId/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/dashboard/settings',
+    path: '/companies/:companyId/settings',
     name: 'Settings',
     component: () => import('@/views/SettingsView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/dashboard/profile',
+    path: '/companies/:companyId/profile',
     name: 'Profile',
     component: () => import('@/views/ProfileView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/dashboard/change-password',
+    path: '/companies/:companyId/change-password',
     name: 'ChangePassword',
     component: () => import('@/views/ChangePasswordView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/dashboard/members',
+    path: '/companies/:companyId/members',
     name: 'Members',
     component: () => import('@/views/MembersView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/dashboard/roles',
+    path: '/companies/:companyId/branches',
+    name: 'Branches',
+    component: () => import('@/views/BranchesView.vue'),
+    meta: { requiresAuth: true, requiredPermission: Permissions.BRANCHES.READ },
+  },
+  {
+    path: '/companies/:companyId/roles',
     name: 'Roles',
     component: () => import('@/views/RolesView.vue'),
     meta: {
@@ -85,23 +95,47 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore();
   const isAuthenticated = authStore.isAuthenticated;
+  const companyId = to.params.companyId as string | undefined;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: 'Login' };
   }
 
   if (to.meta.requiresGuest && isAuthenticated) {
-    return { name: 'Dashboard' };
+    const tenantId = authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+    if (tenantId) {
+      return { path: `/companies/${tenantId}/dashboard` };
+    }
+    return { name: 'Login' };
+  }
+
+  // Sync activeTenantId with URL param
+  if (companyId && isAuthenticated) {
+    const validTenant = authStore.user?.tenants?.some((t) => t.id === companyId);
+    if (validTenant && authStore.activeTenantId !== companyId) {
+      authStore.setActiveTenant(companyId);
+    } else if (!validTenant) {
+      const fallbackId = authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+      if (fallbackId) {
+        return { path: `/companies/${fallbackId}/dashboard` };
+      }
+    }
   }
 
   // Force password change — block all pages except ChangePassword
   if (isAuthenticated && authStore.user?.must_change_password && to.name !== 'ChangePassword') {
-    return { name: 'ChangePassword' };
+    const tenantId = companyId || authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+    if (tenantId) {
+      return { path: `/companies/${tenantId}/change-password` };
+    }
   }
 
   if (to.meta.requiredPermission) {
     if (!authStore.hasPermission(to.meta.requiredPermission as string)) {
-      return { name: 'Dashboard' };
+      const tenantId = companyId || authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+      if (tenantId) {
+        return { path: `/companies/${tenantId}/dashboard` };
+      }
     }
   }
 });
