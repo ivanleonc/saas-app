@@ -30,9 +30,10 @@ export class RbacController {
   }
 
   @Get('roles/:id')
-  @ApiOperation({ summary: 'Obtener un rol por ID con sus permisos' })
-  @ApiParam({ name: 'id', description: 'UUID del rol' })
+  @ApiOperation({ summary: 'Obtener un rol por ID con sus permisos', description: 'El id debe ser un UUID válido.' })
+  @ApiParam({ name: 'id', description: 'UUID del rol', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Rol con permisos' })
+  @ApiResponse({ status: 400, description: 'id no es un UUID válido' })
   @ApiResponse({ status: 404, description: 'Rol no encontrado' })
   async getRoleById(@Param('id', ParseUUIDPipe) id: string) {
     const role = await this.rbacService.getRoleById(id);
@@ -57,10 +58,12 @@ export class RbacController {
   @Put('roles/:id/permissions')
   @UseGuards(RolesGuard)
   @Roles('Owner')
-  @ApiOperation({ summary: 'Actualizar permisos de un rol', description: 'Solo el Owner puede modificar permisos' })
-  @ApiParam({ name: 'id', description: 'UUID del rol' })
+  @ApiOperation({ summary: 'Actualizar permisos de un rol', description: 'Solo el Owner puede modificar permisos. El id debe ser un UUID válido.' })
+  @ApiParam({ name: 'id', description: 'UUID del rol', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Permisos actualizados' })
+  @ApiResponse({ status: 400, description: 'id no es un UUID válido' })
   @ApiResponse({ status: 403, description: 'Solo el Owner puede modificar permisos' })
+  @ApiResponse({ status: 404, description: 'Rol no encontrado' })
   async updateRolePermissions(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRolePermissionsDto,
@@ -72,9 +75,10 @@ export class RbacController {
   @Delete('roles/:id')
   @UseGuards(RolesGuard)
   @Roles('Owner')
-  @ApiOperation({ summary: 'Eliminar un rol personalizado', description: 'No se pueden eliminar Owner ni Admin' })
-  @ApiParam({ name: 'id', description: 'UUID del rol' })
+  @ApiOperation({ summary: 'Eliminar un rol personalizado', description: 'No se pueden eliminar Owner ni Admin. El id debe ser un UUID válido.' })
+  @ApiParam({ name: 'id', description: 'UUID del rol', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Rol eliminado' })
+  @ApiResponse({ status: 400, description: 'id no es un UUID válido' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar un rol del sistema' })
   async deleteRole(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.rbacService.deleteRole(id);

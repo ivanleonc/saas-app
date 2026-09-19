@@ -76,8 +76,8 @@ export class CompanyController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Actualizar información de empresa', description: 'Solo el rol Owner puede modificar los datos de la empresa' })
-  @ApiParam({ name: 'id', description: 'UUID de la empresa', example: 'company-uuid-1' })
+  @ApiOperation({ summary: 'Actualizar información de empresa', description: 'Solo el rol Owner puede modificar los datos de la empresa. El id debe ser un UUID válido.' })
+  @ApiParam({ name: 'id', description: 'UUID de la empresa', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({
     status: 200,
     description: 'Empresa actualizada exitosamente',
@@ -95,7 +95,7 @@ export class CompanyController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o empresa no encontrada' })
+  @ApiResponse({ status: 400, description: 'id no es un UUID válido o datos inválidos' })
   @ApiResponse({ status: 401, description: 'Token JWT inválido o expirado' })
   @ApiResponse({ status: 403, description: 'No tienes acceso a esta empresa o no eres Owner' })
   async updateCompany(

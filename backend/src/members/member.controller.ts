@@ -16,9 +16,27 @@ export class MemberController {
   @Get()
   @UseGuards(PermissionsGuard)
   @RequirePermissions('users:read')
-  @ApiOperation({ summary: 'Obtener miembros de la empresa', description: 'Requiere permiso users:read' })
+  @ApiOperation({ summary: 'Obtener miembros de la empresa', description: 'Requiere permiso users:read. Header x-company-id requerido.' })
   @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
-  @ApiResponse({ status: 200, description: 'Lista de miembros con sus roles' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de miembros con sus roles',
+    schema: {
+      example: {
+        success: true,
+        data: [
+          {
+            id: 'uuid',
+            name: 'Juan Pérez',
+            email: 'juan@empresa.com',
+            status: 'active',
+            must_change_password: false,
+            roles: [{ id: 'role-uuid', name: 'Admin' }],
+          },
+        ],
+      },
+    },
+  })
   @ApiResponse({ status: 403, description: 'Permiso denegado' })
   async getMembers(
     @CurrentUser('id') userId: string,
@@ -31,9 +49,27 @@ export class MemberController {
   @Post()
   @UseGuards(PermissionsGuard)
   @RequirePermissions('users:create')
-  @ApiOperation({ summary: 'Agregar un miembro a la empresa', description: 'Requiere permiso users:create' })
+  @ApiOperation({ summary: 'Agregar un miembro a la empresa', description: 'Si el email no existe, crea el usuario con contraseña temporal (must_change_password=true). Si ya existe, solo lo agrega a la empresa.' })
   @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
-  @ApiResponse({ status: 201, description: 'Miembro agregado (incluye contraseña temporal si es nuevo usuario)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Miembro agregado',
+    schema: {
+      example: {
+        success: true,
+        message: 'Miembro agregado exitosamente. Se generó una contraseña temporal.',
+        data: {
+          id: 'uuid',
+          name: 'Juan Pérez',
+          email: 'juan@empresa.com',
+          temporary_password: 'xK9mN2pQ7rS',
+          role_assigned: ['Editor'],
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o usuario no encontrado' })
+  @ApiResponse({ status: 403, description: 'Permiso denegado' })
   @ApiResponse({ status: 409, description: 'El usuario ya es miembro de la empresa' })
   async addMember(
     @CurrentUser('id') userId: string,
@@ -64,10 +100,12 @@ export class MemberController {
   @Patch(':userId')
   @UseGuards(PermissionsGuard)
   @RequirePermissions('users:update')
-  @ApiOperation({ summary: 'Actualizar rol o estado de un miembro', description: 'Requiere permiso users:update' })
+  @ApiOperation({ summary: 'Actualizar rol o estado de un miembro', description: 'Requiere permiso users:update. El userId debe ser un UUID válido.' })
   @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
-  @ApiParam({ name: 'userId', description: 'UUID del usuario' })
+  @ApiParam({ name: 'userId', description: 'UUID del usuario', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Miembro actualizado' })
+  @ApiResponse({ status: 400, description: 'userId no es un UUID válido' })
+  @ApiResponse({ status: 403, description: 'Permiso denegado' })
   @ApiResponse({ status: 404, description: 'Miembro no encontrado' })
   async updateMember(
     @CurrentUser('id') userId: string,
@@ -85,10 +123,12 @@ export class MemberController {
   @Delete(':userId')
   @UseGuards(PermissionsGuard)
   @RequirePermissions('users:delete')
-  @ApiOperation({ summary: 'Eliminar un miembro de la empresa', description: 'Requiere permiso users:delete' })
+  @ApiOperation({ summary: 'Eliminar un miembro de la empresa', description: 'Requiere permiso users:delete. El userId debe ser un UUID válido.' })
   @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
-  @ApiParam({ name: 'userId', description: 'UUID del usuario' })
+  @ApiParam({ name: 'userId', description: 'UUID del usuario', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Miembro eliminado' })
+  @ApiResponse({ status: 400, description: 'userId no es un UUID válido' })
+  @ApiResponse({ status: 403, description: 'Permiso denegado' })
   @ApiResponse({ status: 404, description: 'Miembro no encontrado' })
   async removeMember(
     @CurrentUser('id') userId: string,

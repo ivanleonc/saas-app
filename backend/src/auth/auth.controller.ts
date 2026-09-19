@@ -20,21 +20,33 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Registrar nuevo usuario' })
+  @ApiOperation({ summary: 'Registrar nuevo usuario', description: 'Crea un usuario y retorna tokens de autenticación (auto-login). Si el email ya existe, retorna 409.' })
   @ApiResponse({
     status: 201,
-    description: 'Usuario registrado exitosamente',
+    description: 'Usuario registrado y autenticado',
     schema: {
       example: {
         success: true,
         message: 'Usuario registrado exitosamente',
         data: {
-          user: { id: 'uuid', email: 'nuevo@empresa.com', name: 'Juan Pérez', must_change_password: false },
+          accessToken: 'eyJhbGciOiJIUzI1NiIs...',
+          refreshToken: 'eyJhbGciOiJIUzI1NiIs...',
+          user: {
+            id: 'uuid',
+            email: 'nuevo@empresa.com',
+            name: 'Juan Pérez',
+            must_change_password: false,
+            email_verified: false,
+            password_expired: false,
+            tenants: [],
+            roles: [],
+            permissions: [],
+          },
         },
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos (email formato incorrecto, password < 6 caracteres)' })
   @ApiResponse({ status: 409, description: 'El correo ya está registrado' })
   async register(@Body() registerDto: RegisterDto) {
     const { message, accessToken, refreshToken, user } = await this.authService.register(registerDto.email, registerDto.password, registerDto.name);
