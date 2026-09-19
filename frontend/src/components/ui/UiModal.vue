@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div v-if="isOpen" class="modal-overlay" @click.self="close">
-      <div class="modal-content">
+      <div class="modal-content" :class="`modal-${size}`">
         <slot></slot>
       </div>
     </div>
@@ -9,6 +9,14 @@
 </template>
 
 <script setup lang="ts">
+interface Props {
+  size?: 'small' | 'default' | 'large';
+}
+
+withDefaults(defineProps<Props>(), {
+  size: 'default',
+});
+
 const isOpen = defineModel<boolean>({ default: false });
 
 const close = () => {
@@ -37,6 +45,10 @@ const close = () => {
   max-width: 400px;
   animation: modal-in 0.2s ease-out;
 }
+
+.modal-small { max-width: 340px; }
+.modal-default { max-width: 400px; }
+.modal-large { max-width: 600px; }
 
 @keyframes modal-in {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }

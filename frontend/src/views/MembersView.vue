@@ -60,7 +60,7 @@
       </div>
 
       <!-- Add Member Modal -->
-      <UiModal v-model="isAddModalOpen">
+      <UiModal v-model="isAddModalOpen" size="large">
         <form @submit.prevent="handleAddSubmit">
           <UiCard>
             <template #header>
@@ -83,15 +83,14 @@
               <template v-else>
                 <UiInput v-model="addForm.name" label="Nombre Completo" required />
                 <UiInput v-model="addForm.email" label="Correo Electronico" type="email" required />
-                <div class="select-group">
-                  <label class="ui-label">Rol Asignado</label>
-                  <div class="checkbox-grid">
-                    <label v-for="role in availableRoles" :key="role.id">
-                      <input type="checkbox" :value="role.id" v-model="addForm.roleIds" />
-                      {{ role.name }}
-                    </label>
-                  </div>
-                </div>
+                <UiDualListbox
+                  v-model="addForm.roleIds"
+                  :available="roleItems"
+                  :selected="roleItems"
+                  label="Roles"
+                  available-label="Disponibles"
+                  selected-label="Asignados"
+                />
               </template>
             </div>
             <template #footer>
@@ -109,7 +108,7 @@
       </UiModal>
 
       <!-- Edit Member Modal -->
-      <UiModal v-model="isEditModalOpen">
+      <UiModal v-model="isEditModalOpen" size="large">
         <form @submit.prevent="handleEditSubmit">
           <UiCard>
             <template #header>
@@ -124,18 +123,14 @@
                 :options="statusOptions" 
               />
 
-              <div>
-                <label class="ui-label">Roles Asignados</label>
-                <div class="checkbox-grid">
-                  <label 
-                    v-for="role in availableRoles" 
-                    :key="role.id" 
-                  >
-                    <input type="checkbox" :value="role.id" v-model="editForm.roleIds" />
-                    {{ role.name }}
-                  </label>
-                </div>
-              </div>
+              <UiDualListbox
+                v-model="editForm.roleIds"
+                :available="roleItems"
+                :selected="roleItems"
+                label="Roles"
+                available-label="Disponibles"
+                selected-label="Asignados"
+              />
             </div>
 
             <template #footer>
@@ -284,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, ref } from 'vue';
+import { reactive, onMounted, ref, computed } from 'vue';
 import { useMemberStore } from '@/stores/member.store';
 import { roleService, type Role } from '@/services/role.service';
 import { useAuthStore } from '@/stores/auth.store';
@@ -297,11 +292,20 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
+import UiDualListbox from '@/components/ui/UiDualListbox.vue';
 import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash, IconKey, IconMail, IconCopy } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
 const availableRoles = ref<Role[]>([]);
+
+const roleItems = computed(() =>
+  availableRoles.value.map((r) => ({
+    id: r.id,
+    label: r.name,
+    description: r.is_system ? 'Sistema' : 'Personalizado',
+  }))
+);
 
 const copyToClipboard = async (text: string) => {
   try {

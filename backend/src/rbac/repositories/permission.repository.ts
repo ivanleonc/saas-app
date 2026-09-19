@@ -7,7 +7,7 @@ export class PermissionRepository {
 
   async findAll() {
     return this.dataSource.query(
-      `SELECT id, code, module FROM permissions ORDER BY module, code`,
+      `SELECT id, code, name, module FROM permissions ORDER BY module, code`,
     );
   }
 
@@ -15,14 +15,14 @@ export class PermissionRepository {
     if (ids.length === 0) return [];
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
     return this.dataSource.query(
-      `SELECT id, code, module FROM permissions WHERE id IN (${placeholders})`,
+      `SELECT id, code, name, module FROM permissions WHERE id IN (${placeholders})`,
       ids,
     );
   }
 
   async findByModule(module: string) {
     return this.dataSource.query(
-      `SELECT id, code, module FROM permissions WHERE module = $1 ORDER BY code`,
+      `SELECT id, code, name, module FROM permissions WHERE module = $1 ORDER BY code`,
       [module],
     );
   }

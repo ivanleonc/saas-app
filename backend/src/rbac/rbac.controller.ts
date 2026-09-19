@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Headers, UseGuards, Pa
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { RbacService } from './rbac.service.js';
 import { CreateRoleDto } from './dto/create-role.dto.js';
+import { UpdateRoleDto } from './dto/update-role.dto.js';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -71,6 +72,22 @@ export class RbacController {
   ) {
     const role = await this.rbacService.updateRolePermissions(id, dto.permissionIds || []);
     return { success: true, message: 'Permisos actualizados correctamente', data: role };
+  }
+
+  @Put('roles/:id')
+  @UseGuards(RolesGuard)
+  @Roles(SystemRoles.OWNER, SystemRoles.ADMIN)
+  @ApiOperation({ summary: 'Actualizar un rol (nombre y/o permisos)' })
+  @ApiParam({ name: 'id', description: 'UUID del rol' })
+  @ApiResponse({ status: 200, description: 'Rol actualizado' })
+  @ApiResponse({ status: 400, description: 'id no es un UUID valido' })
+  @ApiResponse({ status: 409, description: 'Nombre duplicado o rol del sistema' })
+  async updateRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateRoleDto,
+  ) {
+    const role = await this.rbacService.updateRole(id, dto);
+    return { success: true, message: 'Rol actualizado correctamente', data: role };
   }
 
   @Delete('roles/:id')

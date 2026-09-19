@@ -55,6 +55,30 @@ export class RbacService {
     return { ...role, permissions: await this.roleRepository.getPermissions(roleId) };
   }
 
+  async updateRole(roleId: string, data: { name?: string; permissionIds?: string[] }) {
+    const role = await this.roleRepository.findById(roleId);
+    if (!role) throw new NotFoundException('Rol no encontrado');
+
+    if (IMMUTABLE_ROLES.includes(role.name as any)) {
+      throw new ConflictException(`No se pueden modificar los roles del sistema (${role.name})`);
+    }
+
+    if (data.name && data.name !== role.name) {
+      const existing = await this.roleRepository.findByName(data.name, role.company_id);
+      if (existing) throw new ConflictException(`Ya existe un rol con el nombre "${data.name}"`);
+      await this.roleRepository.updateName(roleId, data.name);
+    }
+
+    if (data.permissionIds !== undefined) {
+      const validIds = data.permissionIds.filter(id => typeof id === 'string' && id.length > 0);
+      await this.roleRepository.setPermissions(roleId, validIds);
+    }
+
+    const updatedRole = await this.roleRepository.findById(roleId);
+    const permissions = await this.roleRepository.getPermissions(roleId);
+    return { ...updatedRole, permissions };
+  }
+
   async deleteRole(id: string) {
     const role = await this.roleRepository.findById(id);
     if (!role) throw new NotFoundException('Rol no encontrado');

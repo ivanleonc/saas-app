@@ -29,6 +29,11 @@ export const roleService = {
     return response.data;
   },
 
+  async updateRole(roleId: string, data: { name?: string; permissionIds?: string[] }) {
+    const response = await apiClient.put(`/roles/${roleId}`, data);
+    return response.data;
+  },
+
   async deleteRole(roleId: string) {
     const response = await apiClient.delete(`/roles/${roleId}`);
     return response.data;

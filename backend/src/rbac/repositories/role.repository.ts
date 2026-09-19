@@ -52,6 +52,13 @@ export class RoleRepository {
     return result[0];
   }
 
+  async updateName(id: string, name: string) {
+    await this.dataSource.query(
+      `UPDATE roles SET name = $1 WHERE id = $2`,
+      [name, id],
+    );
+  }
+
   async delete(id: string) {
     const placeholders = PROTECTED_ROLES.map((_, i) => `$${i + 2}`).join(', ');
     await this.dataSource.query(
@@ -62,7 +69,7 @@ export class RoleRepository {
 
   async getPermissions(roleId: string) {
     return this.dataSource.query(
-      `SELECT p.id, p.code, p.module
+      `SELECT p.id, p.code, p.name, p.module
        FROM permissions p
        INNER JOIN role_permissions rp ON p.id = rp.permission_id
        WHERE rp.role_id = $1
@@ -83,13 +90,22 @@ export class RoleRepository {
       );
 
       if (permissionIds.length > 0) {
-        const values = permissionIds
-          .map((pid, i) => `($1, $${i + 2})`)
-          .join(', ');
-        await queryRunner.query(
-          `INSERT INTO role_permissions (role_id, permission_id) VALUES ${values}`,
-          [roleId, ...permissionIds],
+        const placeholders = permissionIds.map((_, i) => `$${i + 1}`).join(', ');
+        const validRows = await queryRunner.query(
+          `SELECT id FROM permissions WHERE id IN (${placeholders})`,
+          permissionIds,
         );
+        const validIds = validRows.map((r: any) => r.id);
+
+        if (validIds.length > 0) {
+          const values = validIds
+            .map((pid: string, i: number) => `($1, $${i + 2})`)
+            .join(', ');
+          await queryRunner.query(
+            `INSERT INTO role_permissions (role_id, permission_id) VALUES ${values}`,
+            [roleId, ...validIds],
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -110,7 +126,7 @@ export class RoleRepository {
         SELECT r.id, r.name, r.company_id,
           COALESCE(
             json_agg(
-              json_build_object('id', p.id, 'code', p.code, 'module', p.module)
+              json_build_object('id', p.id, 'code', p.code, 'name', p.name, 'module', p.module)
             ) FILTER (WHERE p.id IS NOT NULL),
             '[]'
           ) as permissions
@@ -128,7 +144,7 @@ export class RoleRepository {
         SELECT r.id, r.name, r.company_id,
           COALESCE(
             json_agg(
-              json_build_object('id', p.id, 'code', p.code, 'module', p.module)
+              json_build_object('id', p.id, 'code', p.code, 'name', p.name, 'module', p.module)
             ) FILTER (WHERE p.id IS NOT NULL),
             '[]'
           ) as permissions

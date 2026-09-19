@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsArray, IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, IsOptional } from 'class-validator';
 
 export class CreateRoleDto {
   @ApiProperty({ example: 'Gestor de Finanzas', description: 'Nombre del rol' })
@@ -7,7 +7,7 @@ export class CreateRoleDto {
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ example: 'Acceso solo a reportes financieros', description: 'Descripción del rol' })
+  @ApiPropertyOptional({ example: 'Acceso solo a reportes financieros', description: 'Descripcion del rol' })
   @IsOptional()
   @IsString()
   description?: string;
@@ -15,6 +15,5 @@ export class CreateRoleDto {
   @ApiPropertyOptional({ example: ['a1b2c3d4-e5f6-7890-abcd-ef1234567890'], description: 'UUIDs de permisos a asignar al rol' })
   @IsOptional()
   @IsArray()
-  @IsUUID(undefined, { each: true })
   permissionIds?: string[];
 }
