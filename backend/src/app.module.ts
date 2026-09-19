@@ -10,6 +10,8 @@ import { AuditLogInterceptor } from './audit/audit-log.interceptor.js';
 import { EmailModule } from './email/email.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
 import { MemberModule } from './members/member.module.js';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
+import { PasswordChangedGuard } from './auth/guards/password-changed.guard.js';
 
 @Module({
   imports: [
@@ -38,6 +40,14 @@ import { MemberModule } from './members/member.module.js';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PasswordChangedGuard,
     },
     {
       provide: APP_INTERCEPTOR,

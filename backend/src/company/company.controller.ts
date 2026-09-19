@@ -1,15 +1,12 @@
-import { Controller, Get, Post, Body, Param, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CompanyService } from './company.service.js';
 import { CreateCompanyDto } from './dto/create-company.dto.js';
 import { UpdateCompanyDto } from './dto/update-company.dto.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { PasswordChangedGuard } from '../auth/guards/password-changed.guard.js';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 @ApiTags('Companies')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PasswordChangedGuard)
 @Controller('api/companies')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
@@ -103,7 +100,7 @@ export class CompanyController {
   @ApiResponse({ status: 403, description: 'No tienes acceso a esta empresa o no eres Owner' })
   async updateCompany(
     @CurrentUser('id') userId: string,
-    @Param('id') companyId: string,
+    @Param('id', ParseUUIDPipe) companyId: string,
     @Body() updateCompanyDto: UpdateCompanyDto,
   ) {
     const updatedCompany = await this.companyService.updateCompanyInfo(userId, companyId, updateCompanyDto);

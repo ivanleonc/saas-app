@@ -57,8 +57,8 @@ export class UserRepository {
 
   async lockAccount(userId: string, lockMinutes: number = 15): Promise<void> {
     await this.dataSource.query(
-      `UPDATE users SET locked_until = NOW() + interval '${lockMinutes} minutes' WHERE id = $1`,
-      [userId],
+      `UPDATE users SET locked_until = NOW() + ($2 || ' minutes')::interval WHERE id = $1`,
+      [userId, String(lockMinutes)],
     );
   }
 

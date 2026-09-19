@@ -1,17 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Headers, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { MemberService } from './member.service.js';
 import { AddMemberDto } from './dto/add-member.dto.js';
 import { UpdateMemberDto } from './dto/update-member.dto.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { PasswordChangedGuard } from '../auth/guards/password-changed.guard.js';
-import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
-import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+import { RequirePermissions } from '../common/decorators/permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 @ApiTags('Members - Gestión de Miembros')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PasswordChangedGuard)
 @Controller('api/companies/users')
 export class MemberController {
   constructor(private readonly memberService: MemberService) {}
@@ -75,7 +72,7 @@ export class MemberController {
   async updateMember(
     @CurrentUser('id') userId: string,
     @Headers('x-company-id') companyId: string,
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
     @Body() dto: UpdateMemberDto,
   ) {
     const result = await this.memberService.updateMember(companyId, targetUserId, {
@@ -96,7 +93,7 @@ export class MemberController {
   async removeMember(
     @CurrentUser('id') userId: string,
     @Headers('x-company-id') companyId: string,
-    @Param('userId') targetUserId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
   ) {
     const result = await this.memberService.removeMember(companyId, targetUserId);
     return { success: true, ...result };

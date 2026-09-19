@@ -6,83 +6,58 @@ import type { Member, CreateMemberPayload, UpdateMemberPayload } from '@/types/m
 
 export const useMemberStore = defineStore('member', () => {
   const authStore = useAuthStore();
-  
-  // Estado reactivo
+
   const members = ref<Member[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // Getter computado para obtener dinámicamente el ID de la empresa seleccionada
-const currentCompanyId = computed(() => {
-    return authStore.activeTenantId;
-  });
+  const currentCompanyId = computed(() => authStore.activeTenantId);
 
-  // Acción: Cargar miembros desde el backend
+  const withLoading = async <T>(fn: () => Promise<T>, errorMsg?: string): Promise<T | undefined> => {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      return await fn();
+    } catch (err: any) {
+      error.value = err.response?.data?.error || errorMsg || 'Error en la operación';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const fetchMembers = async () => {
     if (!currentCompanyId.value) return;
-    
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const response = await memberService.getMembers(currentCompanyId.value);
-      // Mapeamos según la estructura de tu apiResponse: response.data contiene el array
+    await withLoading(async () => {
+      const response = await memberService.getMembers();
       members.value = response.data;
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al cargar los miembros';
-    } finally {
-      isLoading.value = false;
-    }
+    }, 'Error al cargar los miembros');
   };
 
-  // Acción: Agregar un nuevo miembro
   const addMember = async (payload: CreateMemberPayload) => {
     if (!currentCompanyId.value) throw new Error('No hay una empresa activa seleccionada');
-    
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const response = await memberService.addMember(currentCompanyId.value, payload);
-      // Refrescamos la lista local tras la inserción exitosa
+    const result = await withLoading(async () => {
+      const response = await memberService.addMember(payload);
       await fetchMembers();
-      return response.data; // Retornamos la data por si la vista necesita mostrar la contraseña temporal
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al agregar el miembro';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+      return response.data;
+    }, 'Error al agregar el miembro');
+    return result;
   };
 
-  // Acción: Actualizar Miembro
   const updateMember = async (userId: string, payload: UpdateMemberPayload) => {
     if (!currentCompanyId.value) return;
-    isLoading.value = true;
-    error.value = null;
-    try {
-      await memberService.updateMember(currentCompanyId.value, userId, payload);
-      await fetchMembers(); // Recargamos la tabla para ver los cambios
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al actualizar el miembro';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+    await withLoading(async () => {
+      await memberService.updateMember(userId, payload);
+      await fetchMembers();
+    }, 'Error al actualizar el miembro');
   };
 
-  // Acción: Eliminar Miembro
   const removeMember = async (userId: string) => {
     if (!currentCompanyId.value) return;
-    isLoading.value = true;
-    error.value = null;
-    try {
-      await memberService.removeMember(currentCompanyId.value, userId);
+    await withLoading(async () => {
+      await memberService.removeMember(userId);
       await fetchMembers();
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al eliminar el miembro';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+    }, 'Error al eliminar el miembro');
   };
 
   return { members, isLoading, error, fetchMembers, addMember, updateMember, removeMember };

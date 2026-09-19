@@ -405,3 +405,11 @@ body {
 .edit-btn:hover { color: var(--color-info-text); }
 .delete-btn { color: var(--color-danger); }
 .delete-btn:hover { color: var(--color-danger-text); }
+
+/* ═══════════════ MODAL FOOTER ═══════════════ */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+}

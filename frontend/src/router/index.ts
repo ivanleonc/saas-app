@@ -94,11 +94,7 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiredPermission) {
-    const activeTenant = authStore.user?.tenants?.find((t) => t.id === authStore.activeTenantId);
-    const isOwner = activeTenant?.roles?.includes('Owner');
-    const hasPerm = activeTenant?.roles?.includes('Admin');
-
-    if (!isOwner && !hasPerm) {
+    if (!authStore.hasPermission(to.meta.requiredPermission as string)) {
       return { name: 'Dashboard' };
     }
   }

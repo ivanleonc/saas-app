@@ -5,8 +5,7 @@
     </label>
     
     <select
-      :value="modelValue"
-      @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
+      v-model="model"
       class="ui-select"
       :required="required"
       :disabled="disabled"
@@ -20,16 +19,21 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  modelValue: string | number;
+interface Props {
   label?: string;
   placeholder?: string;
   options: { label: string; value: string | number }[];
   required?: boolean;
   disabled?: boolean;
-}>();
+}
 
-defineEmits(['update:modelValue']);
+withDefaults(defineProps<Props>(), {
+  placeholder: '',
+  required: false,
+  disabled: false
+});
+
+const model = defineModel<string | number>({ default: '' });
 </script>
 
 <style scoped>
@@ -60,5 +64,6 @@ defineEmits(['update:modelValue']);
 .ui-select:disabled {
   background-color: var(--bg-hover);
   cursor: not-allowed;
+  opacity: 0.5;
 }
 </style>

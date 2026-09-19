@@ -7,6 +7,7 @@
       :type="type"
       :placeholder="placeholder"
       :required="required"
+      :disabled="disabled"
       class="ui-input"
     />
   </div>
@@ -21,12 +22,14 @@ interface Props {
   type?: 'text' | 'email' | 'password' | 'number';
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
   type: 'text',
   placeholder: '',
-  required: false
+  required: false,
+  disabled: false
 });
 
 // Vinculación automática bidireccional del v-model externo
@@ -71,5 +74,11 @@ const id = useId();
 .ui-input:focus {
   border-color: var(--text-main);
   box-shadow: 0 0 0 1px var(--text-main);
+}
+
+.ui-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--bg-app);
 }
 </style>

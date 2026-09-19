@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -9,14 +9,16 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { LogoutDto } from './dto/logout.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { CurrentUser } from './decorators/current-user.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Public } from './decorators/public.decorator.js';
+import { SkipPasswordChanged } from './decorators/skip-password-changed.decorator.js';
 
 @ApiTags('Auth')
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Registrar nuevo usuario' })
   @ApiResponse({
@@ -35,10 +37,11 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 409, description: 'El correo ya está registrado' })
   async register(@Body() registerDto: RegisterDto) {
-    const { message, user } = await this.authService.register(registerDto.email, registerDto.password, registerDto.name);
-    return { success: true, message, data: { user } };
+    const { message, accessToken, refreshToken, user } = await this.authService.register(registerDto.email, registerDto.password, registerDto.name);
+    return { success: true, message, data: { accessToken, refreshToken, user } };
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Iniciar sesión', description: 'Retorna accessToken (15min) y refreshToken (7d). Si la cuenta está bloqueada por intentos fallidos, retorna error con tiempo restante.' })
@@ -77,6 +80,7 @@ export class AuthController {
     return { success: true, message, data };
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refrescar tokens', description: 'Intercambia un refreshToken válido por un nuevo par de tokens (accessToken + refreshToken). El refreshToken anterior se revoca.' })
@@ -99,7 +103,6 @@ export class AuthController {
     return { success: true, data };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -126,7 +129,6 @@ export class AuthController {
     return { success: true, ...result };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -155,7 +157,6 @@ export class AuthController {
     return { success: true, data };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put('profile')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -174,7 +175,7 @@ export class AuthController {
     return { success: true, ...result };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @SkipPasswordChanged()
   @Post('change-temporary-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -195,7 +196,7 @@ export class AuthController {
     return { success: true, ...result };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @SkipPasswordChanged()
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -215,6 +216,7 @@ export class AuthController {
     return { success: true, ...result };
   }
 
+  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar recuperación de contraseña', description: 'Envía un email con token de recuperación (15min). Respuesta genérica por seguridad.' })
@@ -229,6 +231,7 @@ export class AuthController {
     return { success: true, ...result };
   }
 
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Restablecer contraseña con token', description: 'El token se invalida al usarlo. Se revocan todos los refresh tokens del usuario.' })

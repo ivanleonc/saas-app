@@ -1,17 +1,7 @@
 import { apiClient } from '@/api/axios';
+import type { Permission, Role } from '@/types/role';
 
-export interface Permission {
-  id: number;
-  code: string;
-  module: string;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  company_id: string | null;
-  permissions: Permission[];
-}
+export type { Permission, Role };
 
 export const roleService = {
   async getAllPermissions(): Promise<Permission[]> {
@@ -19,10 +9,8 @@ export const roleService = {
     return response.data.data;
   },
 
-  async getRoles(companyId?: string): Promise<Role[]> {
-    const headers: Record<string, string> = {};
-    if (companyId) headers['x-company-id'] = companyId;
-    const response = await apiClient.get('/roles', { headers });
+  async getRoles(): Promise<Role[]> {
+    const response = await apiClient.get('/roles');
     return response.data.data;
   },
 

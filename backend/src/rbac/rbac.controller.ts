@@ -1,16 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Headers, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { RbacService } from './rbac.service.js';
 import { CreateRoleDto } from './dto/create-role.dto.js';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { PasswordChangedGuard } from '../auth/guards/password-changed.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @ApiTags('RBAC - Roles & Permissions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PasswordChangedGuard)
 @Controller('api')
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}
@@ -37,7 +34,7 @@ export class RbacController {
   @ApiParam({ name: 'id', description: 'UUID del rol' })
   @ApiResponse({ status: 200, description: 'Rol con permisos' })
   @ApiResponse({ status: 404, description: 'Rol no encontrado' })
-  async getRoleById(@Param('id') id: string) {
+  async getRoleById(@Param('id', ParseUUIDPipe) id: string) {
     const role = await this.rbacService.getRoleById(id);
     return { success: true, data: role };
   }
@@ -65,7 +62,7 @@ export class RbacController {
   @ApiResponse({ status: 200, description: 'Permisos actualizados' })
   @ApiResponse({ status: 403, description: 'Solo el Owner puede modificar permisos' })
   async updateRolePermissions(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRolePermissionsDto,
   ) {
     const role = await this.rbacService.updateRolePermissions(id, dto.permissionIds || []);
@@ -79,7 +76,7 @@ export class RbacController {
   @ApiParam({ name: 'id', description: 'UUID del rol' })
   @ApiResponse({ status: 200, description: 'Rol eliminado' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar un rol del sistema' })
-  async deleteRole(@Param('id') id: string) {
+  async deleteRole(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.rbacService.deleteRole(id);
     return { success: true, ...result };
   }

@@ -1,9 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcrypt';
-
-const SALT_ROUNDS = 10;
-const TEMP_PASSWORD_LENGTH = 12;
 
 @Injectable()
 export class MemberRepository {
@@ -35,19 +31,12 @@ export class MemberRepository {
     return result.length > 0;
   }
 
-  async addMember(companyId: string, email: string, name: string, roleIds: string[]) {
+  async addMember(companyId: string, email: string, name: string, roleIds: string[], passwordHash: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-      let tempPassword = '';
-      for (let i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
-        tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      const passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
-
       let userResult = await queryRunner.query(
         `SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL`,
         [email],
@@ -100,7 +89,6 @@ export class MemberRepository {
         id: userId,
         name,
         email,
-        temporary_password: isNewUser ? tempPassword : undefined,
         role_assigned: finalRoleIds[0],
         isNewUser,
       };

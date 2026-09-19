@@ -1,10 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { createHash } from 'crypto';
-
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
-}
+import { sha256 } from '../../common/utils/crypto.js';
 
 @Injectable()
 export class TokenBlacklistRepository {

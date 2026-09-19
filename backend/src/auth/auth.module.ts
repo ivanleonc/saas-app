@@ -1,9 +1,12 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { RegistrationService } from './registration.service.js';
+import { SessionService } from './session.service.js';
+import { PasswordService } from './password.service.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import { TokenBlacklistRepository } from './repositories/token-blacklist.repository.js';
@@ -23,12 +26,15 @@ import { RbacModule } from '../rbac/rbac.module.js';
         signOptions: { expiresIn: '15m' },
       }),
     }),
-    forwardRef(() => CompanyModule),
+    CompanyModule,
     RbacModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    RegistrationService,
+    SessionService,
+    PasswordService,
     UserRepository,
     RefreshTokenRepository,
     TokenBlacklistRepository,

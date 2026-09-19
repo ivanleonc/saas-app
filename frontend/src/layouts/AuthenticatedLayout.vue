@@ -179,11 +179,11 @@ let sidebarHoverTimeout: ReturnType<typeof setTimeout> | null = null;
 </script>
 
 <script setup lang="ts">
-import { computed, reactive, onMounted, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
-import { useMemberStore } from '@/stores/member.store';
 import { useCompanyStore } from '@/stores/company.store';
+import { useTheme } from '@/composables/useTheme';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';
@@ -212,10 +212,9 @@ import {
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const memberStore = useMemberStore();
 const companyStore = useCompanyStore();
+const { isDarkMode, applyTheme, toggleTheme } = useTheme();
 
-const isDarkMode = ref(true);
 const isOrgDropdownOpen = ref(false);
 const isUserDropdownOpen = ref(false);
 const isCreateModalOpen = ref(false);
@@ -275,13 +274,7 @@ const breadcrumbs = computed(() => {
 });
 
 const setTheme = (dark: boolean) => {
-  isDarkMode.value = dark;
-  document.documentElement.classList.toggle('dark', dark);
-  localStorage.setItem('theme', dark ? 'dark' : 'light');
-};
-
-const toggleTheme = () => {
-  setTheme(!isDarkMode.value);
+  applyTheme(dark);
 };
 
 const handleOrgChange = (tenantId: string) => {
@@ -313,23 +306,6 @@ const handleLogout = async () => {
   await authStore.logout();
   router.push('/login');
 };
-
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    isDarkMode.value = false;
-    document.documentElement.classList.remove('dark');
-  } else if (savedTheme === 'dark') {
-    isDarkMode.value = true;
-    document.documentElement.classList.add('dark');
-  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    isDarkMode.value = true;
-    document.documentElement.classList.add('dark');
-  } else {
-    isDarkMode.value = false;
-    document.documentElement.classList.remove('dark');
-  }
-});
 </script>
 
 <style scoped>

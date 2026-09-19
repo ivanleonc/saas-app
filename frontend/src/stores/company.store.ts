@@ -9,11 +9,21 @@ export const useCompanyStore = defineStore('company', () => {
   const error = ref<string | null>(null);
   const authStore = useAuthStore();
 
-  const updateCompany = async (companyId: string, payload: UpdateCompanyPayload) => {
+  const withLoading = async <T>(fn: () => Promise<T>, errorMsg?: string): Promise<T | undefined> => {
     isLoading.value = true;
     error.value = null;
-
     try {
+      return await fn();
+    } catch (err: any) {
+      error.value = err.response?.data?.message || err.response?.data?.error || errorMsg || 'Error en la operación';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const updateCompany = async (companyId: string, payload: UpdateCompanyPayload) => {
+    return withLoading(async () => {
       const result = await companyService.updateCompany(companyId, payload);
 
       if (authStore.user && authStore.user.tenants) {
@@ -25,19 +35,11 @@ export const useCompanyStore = defineStore('company', () => {
       }
 
       return result;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || err.response?.data?.error || 'Error al actualizar la empresa';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+    }, 'Error al actualizar la empresa');
   };
 
   const createCompany = async (payload: { name: string; tax_id?: string }) => {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
+    return withLoading(async () => {
       const result = await companyService.createCompany(payload);
       const newCompany = result.data.company;
 
@@ -55,12 +57,7 @@ export const useCompanyStore = defineStore('company', () => {
       }
 
       return result;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || err.response?.data?.error || 'Error al crear la empresa';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+    }, 'Error al crear la empresa');
   };
 
   return { isLoading, error, updateCompany, createCompany };

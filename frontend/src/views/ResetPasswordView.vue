@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { authService } from '@/services/auth.service';
-
+import AuthLayout from '@/layouts/AuthLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';
 import UiButton from '@/components/ui/UiButton.vue';
@@ -48,7 +48,7 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="auth-wrapper">
+  <AuthLayout>
     <form @submit.prevent="handleSubmit" class="auth-form">
       <UiCard>
         <template #header>
@@ -87,47 +87,5 @@ const handleSubmit = async () => {
         </template>
       </UiCard>
     </form>
-  </div>
+  </AuthLayout>
 </template>
-
-<style scoped>
-.auth-wrapper {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-app);
-  padding: var(--space-4);
-}
-
-.auth-form {
-  width: 100%;
-  max-width: 400px;
-}
-
-.auth-title {
-  font-size: var(--text-xl);
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-main);
-}
-
-.auth-description {
-  font-size: var(--text-base);
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.auth-footer-links {
-  text-align: center;
-  font-size: var(--text-base);
-  margin-top: var(--space-4);
-}
-
-.auth-footer-links a {
-  color: var(--text-main);
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-</style>

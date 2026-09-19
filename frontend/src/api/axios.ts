@@ -33,8 +33,9 @@ apiClient.interceptors.request.use(
       const storageData = localStorage.getItem('saas_auth_storage');
       if (storageData) {
         const parsed = JSON.parse(storageData);
-        if (parsed.state?.activeTenantId && config.headers) {
-          config.headers['x-company-id'] = String(parsed.state.activeTenantId);
+        const tenantId = parsed.activeTenantId ?? parsed.state?.activeTenantId;
+        if (tenantId && config.headers) {
+          config.headers['x-company-id'] = String(tenantId);
         }
       }
     } catch {}

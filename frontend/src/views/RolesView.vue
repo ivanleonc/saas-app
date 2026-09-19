@@ -74,7 +74,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { roleService, type Role, type Permission } from '@/services/role.service';
+import { roleService } from '@/services/role.service';
+import type { Role, Permission } from '@/types/role';
 import { useAuthStore } from '@/stores/auth.store';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -96,7 +97,7 @@ const fetchData = async () => {
   if (!authStore.activeTenantId) return;
   try {
     const [rolesData, permsData] = await Promise.all([
-      roleService.getRoles(authStore.activeTenantId),
+      roleService.getRoles(),
       roleService.getAllPermissions()
     ]);
     roles.value = rolesData;
@@ -119,9 +120,8 @@ const handleCreateSubmit = async () => {
   if (!authStore.activeTenantId) return;
   isSaving.value = true;
   try {
-    await roleService.createRole(authStore.activeTenantId, {
+    await roleService.createRole({
       name: form.name,
-      description: form.description,
       permissionIds: form.permissionIds
     });
     isModalOpen.value = false;

@@ -1,25 +1,18 @@
 <template>
-  <router-view :key="$route.path + '-' + (authStore.activeTenantId || 'public')" />
+  <router-view :key="routeKey" />
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { useTheme } from '@/composables/useTheme';
 
+const route = useRoute();
 const authStore = useAuthStore();
+useTheme();
 
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    document.documentElement.classList.remove('dark');
-  } else if (savedTheme === 'dark') {
-    document.documentElement.classList.add('dark');
-  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-});
+const routeKey = computed(() => route.path + '-' + (authStore.activeTenantId || 'public'));
 </script>
 
 <style>

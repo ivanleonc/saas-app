@@ -164,6 +164,25 @@
       </div>
     </Teleport>
 
+    <!-- Delete Confirmation Modal -->
+    <UiModal v-model="isDeleteModalOpen">
+      <UiCard>
+        <template #header>
+          <h3 class="card-title">Eliminar Miembro</h3>
+          <p class="card-description">¿Estás seguro de que deseas eliminar permanentemente a <strong>{{ deleteTarget?.name }}</strong> de la empresa?</p>
+        </template>
+        <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
+        <template #footer>
+          <div class="modal-footer">
+            <UiButton variant="outline" @click="isDeleteModalOpen = false">Cancelar</UiButton>
+            <UiButton variant="danger" :loading="memberStore.isLoading" @click="confirmDelete">
+              Eliminar
+            </UiButton>
+          </div>
+        </template>
+      </UiCard>
+    </UiModal>
+
   </AuthenticatedLayout>
 </template>
 
@@ -305,14 +324,23 @@ const handleEditSubmit = async () => {
 };
 
 // --- DELETE MEMBER ---
-const handleDelete = async (userId: string, userName: string) => {
-  const isConfirmed = window.confirm(`¿Estás seguro de que deseas eliminar permanentemente a ${userName} de la empresa?`);
-  if (!isConfirmed) return;
+const isDeleteModalOpen = ref(false);
+const deleteTarget = ref<{ id: string; name: string } | null>(null);
 
+const handleDelete = async (userId: string, userName: string) => {
+  deleteTarget.value = { id: userId, name: userName };
+  openRowMenuId.value = null;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!deleteTarget.value) return;
   try {
-    await memberStore.removeMember(userId);
+    await memberStore.removeMember(deleteTarget.value.id);
+    isDeleteModalOpen.value = false;
+    deleteTarget.value = null;
   } catch (error) {
-    alert(memberStore.error || 'Error al eliminar');
+    console.error('Error al eliminar:', error);
   }
 };
 </script>
