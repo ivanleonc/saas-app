@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Put, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -19,6 +20,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   @ApiOperation({ summary: 'Registrar nuevo usuario', description: 'Crea un usuario y retorna tokens de autenticación (auto-login). Si el email ya existe, retorna 409.' })
   @ApiResponse({
@@ -54,6 +56,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Iniciar sesión', description: 'Retorna accessToken (15min) y refreshToken (7d). Si la cuenta está bloqueada por intentos fallidos, retorna error con tiempo restante.' })
@@ -229,6 +232,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar recuperación de contraseña', description: 'Envía un email con token de recuperación (15min). Respuesta genérica por seguridad.' })
@@ -244,6 +248,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Restablecer contraseña con token', description: 'El token se invalida al usarlo. Se revocan todos los refresh tokens del usuario.' })

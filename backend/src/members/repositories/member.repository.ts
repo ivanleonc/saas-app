@@ -43,10 +43,11 @@ export class MemberRepository {
       );
 
       let userId: string;
-      let isNewUser = false;
+      let userAlreadyExisted = false;
 
       if (userResult.length > 0) {
         userId = userResult[0].id;
+        userAlreadyExisted = true;
         const memberCheck = await queryRunner.query(
           `SELECT 1 FROM user_contexts WHERE user_id = $1 AND company_id = $2`,
           [userId, companyId],
@@ -63,7 +64,6 @@ export class MemberRepository {
           [email, passwordHash, name],
         );
         userId = newUser[0].id;
-        isNewUser = true;
       }
 
       let finalRoleIds = roleIds;
@@ -90,7 +90,7 @@ export class MemberRepository {
         name,
         email,
         role_assigned: finalRoleIds[0],
-        isNewUser,
+        isNewUser: !userAlreadyExisted,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -156,6 +156,21 @@ export class MemberRepository {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async updatePassword(userId: string, passwordHash: string) {
+    await this.dataSource.query(
+      `UPDATE users SET password_hash = $1, must_change_password = TRUE, password_changed_at = NOW() WHERE id = $2`,
+      [passwordHash, userId],
+    );
+  }
+
+  async findUserById(userId: string) {
+    const result = await this.dataSource.query(
+      `SELECT id, email, name FROM users WHERE id = $1 AND deleted_at IS NULL`,
+      [userId],
+    );
+    return result[0];
   }
 
   async removeMember(companyId: string, userId: string) {

@@ -6,7 +6,7 @@
           <h1 class="page-title">Miembros del Equipo</h1>
           <p class="page-subtitle">Gestiona los accesos y roles de los usuarios en tu organización.</p>
         </div>
-        <UiButton v-permission="'users:create'" @click="openAddModal" width="auto">
+        <UiButton v-permission="Permissions.USERS.CREATE" @click="openAddModal" width="auto">
           <IconPlus :size="16" /> Nuevo Miembro
         </UiButton>
       </div>
@@ -47,7 +47,7 @@
                   </span>
                 </td>
                 <td>
-                  <div class="row-actions" v-permission="'users:update'" :ref="el => setRowRef(member.id, el)">
+                  <div class="row-actions" v-permission="Permissions.USERS.UPDATE" :ref="el => setRowRef(member.id, el)">
                     <button class="dots-btn" @click.stop="toggleRowMenu(member.id)">
                       <IconDotsVertical :size="16" stroke-width="1.8" />
                     </button>
@@ -72,7 +72,13 @@
               <div v-if="newMemberCredentials" class="credentials-box">
                 <p class="credentials-title">Miembro Agregado!</p>
                 <p><strong>Usuario:</strong> {{ newMemberCredentials.email }}</p>
-                <p><strong>Clave:</strong> <code class="secret-code">{{ newMemberCredentials.password }}</code></p>
+                <p class="password-row">
+                  <strong>Clave:</strong>
+                  <code class="secret-code">{{ newMemberCredentials.password }}</code>
+                  <button type="button" class="copy-btn" @click="copyToClipboard(newMemberCredentials.password)" title="Copiar contraseña">
+                    <IconCopy :size="14" stroke-width="1.8" />
+                  </button>
+                </p>
               </div>
               <template v-else>
                 <UiInput v-model="addForm.name" label="Nombre Completo" required />
@@ -156,8 +162,16 @@
           <IconPencil :size="14" stroke-width="1.8" />
           <span>Editar</span>
         </div>
+        <div class="dropdown-item" @click="handleResetPasswordFromDropdown">
+          <IconKey :size="14" stroke-width="1.8" />
+          <span>Resetear Contraseña</span>
+        </div>
+        <div class="dropdown-item" @click="handleResetPasswordEmailFromDropdown">
+          <IconMail :size="14" stroke-width="1.8" />
+          <span>Resetear y enviar al correo</span>
+        </div>
         <div class="dropdown-divider"></div>
-        <div class="dropdown-item danger" @click="handleDeleteFromDropdown" v-permission="'users:delete'">
+        <div class="dropdown-item danger" @click="handleDeleteFromDropdown" v-permission="Permissions.USERS.DELETE">
           <IconTrash :size="14" stroke-width="1.8" />
           <span>Eliminar</span>
         </div>
@@ -183,6 +197,89 @@
       </UiCard>
     </UiModal>
 
+    <!-- Reset Password Confirmation Modal -->
+    <UiModal v-model="isResetModalOpen">
+      <UiCard>
+        <template #header>
+          <h3 class="card-title">Resetear Contraseña</h3>
+          <p class="card-description">Se generará una nueva contraseña temporal para <strong>{{ resetTarget?.name }}</strong>. Deberá cambiarla en su próximo inicio de sesión.</p>
+        </template>
+        <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
+        <template #footer>
+          <div class="modal-footer">
+            <UiButton variant="outline" @click="isResetModalOpen = false">Cancelar</UiButton>
+            <UiButton :loading="memberStore.isLoading" @click="confirmResetPassword">
+              Resetear Contraseña
+            </UiButton>
+          </div>
+        </template>
+      </UiCard>
+    </UiModal>
+
+    <!-- Reset Password Success Modal -->
+    <UiModal v-model="isResetSuccessModalOpen">
+      <UiCard>
+        <template #header>
+          <h3 class="card-title">Contraseña Reseteada</h3>
+          <p class="card-description">Comparte esta contraseña temporal con el usuario de forma segura.</p>
+        </template>
+        <div v-if="resetResult" class="credentials-box">
+          <p class="credentials-title">Nueva Contraseña Temporal</p>
+          <p><strong>Usuario:</strong> {{ resetTarget?.email }}</p>
+          <p class="password-row">
+            <strong>Clave:</strong>
+            <code class="secret-code">{{ resetResult.temporary_password }}</code>
+            <button type="button" class="copy-btn" @click="copyToClipboard(resetResult.temporary_password)" title="Copiar contraseña">
+              <IconCopy :size="14" stroke-width="1.8" />
+            </button>
+          </p>
+        </div>
+        <template #footer>
+          <div class="modal-footer">
+            <UiButton @click="isResetSuccessModalOpen = false">Cerrar</UiButton>
+          </div>
+        </template>
+      </UiCard>
+    </UiModal>
+
+    <!-- Reset Password + Email Confirmation Modal -->
+    <UiModal v-model="isResetEmailModalOpen">
+      <UiCard>
+        <template #header>
+          <h3 class="card-title">Resetear y Enviar por Correo</h3>
+          <p class="card-description">Se generará una nueva contraseña temporal para <strong>{{ resetEmailTarget?.name }}</strong> y se enviará a su correo electrónico.</p>
+        </template>
+        <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
+        <template #footer>
+          <div class="modal-footer">
+            <UiButton variant="outline" @click="isResetEmailModalOpen = false">Cancelar</UiButton>
+            <UiButton :loading="memberStore.isLoading" @click="confirmResetPasswordEmail">
+              Enviar Contraseña
+            </UiButton>
+          </div>
+        </template>
+      </UiCard>
+    </UiModal>
+
+    <!-- Reset Password + Email Success Modal -->
+    <UiModal v-model="isResetEmailSuccessModalOpen">
+      <UiCard>
+        <template #header>
+          <h3 class="card-title">Contraseña Enviada</h3>
+          <p class="card-description">La nueva contraseña temporal fue enviada al correo del usuario.</p>
+        </template>
+        <div v-if="resetEmailResult" class="credentials-box">
+          <p class="credentials-title">Correo Enviado</p>
+          <p><strong>Destinatario:</strong> {{ resetEmailResult.email }}</p>
+        </div>
+        <template #footer>
+          <div class="modal-footer">
+            <UiButton @click="isResetEmailSuccessModalOpen = false">Cerrar</UiButton>
+          </div>
+        </template>
+      </UiCard>
+    </UiModal>
+
   </AuthenticatedLayout>
 </template>
 
@@ -191,6 +288,7 @@ import { reactive, onMounted, ref } from 'vue';
 import { useMemberStore } from '@/stores/member.store';
 import { roleService, type Role } from '@/services/role.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { Permissions } from '@/constants/permissions';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -199,11 +297,25 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
-import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash } from '@tabler/icons-vue';
+import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash, IconKey, IconMail, IconCopy } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
 const availableRoles = ref<Role[]>([]);
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+};
 
 const openRowMenuId = ref<string | null>(null);
 const rowRefs = ref<Record<string, HTMLElement>>({});
@@ -237,6 +349,18 @@ const handleDeleteFromDropdown = () => {
   const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
   openRowMenuId.value = null;
   if (member) handleDelete(member.id, member.name);
+};
+
+const handleResetPasswordFromDropdown = () => {
+  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
+  openRowMenuId.value = null;
+  if (member) openResetPasswordModal(member);
+};
+
+const handleResetPasswordEmailFromDropdown = () => {
+  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
+  openRowMenuId.value = null;
+  if (member) openResetPasswordEmailModal(member);
 };
 
 // --- ADD MEMBER ---
@@ -343,6 +467,54 @@ const confirmDelete = async () => {
     console.error('Error al eliminar:', error);
   }
 };
+
+// --- RESET PASSWORD ---
+const isResetModalOpen = ref(false);
+const isResetSuccessModalOpen = ref(false);
+const resetTarget = ref<{ id: string; name: string; email: string } | null>(null);
+const resetResult = ref<{ temporary_password: string } | null>(null);
+
+const openResetPasswordModal = (member: any) => {
+  resetTarget.value = { id: member.id, name: member.name, email: member.email };
+  resetResult.value = null;
+  isResetModalOpen.value = true;
+};
+
+const confirmResetPassword = async () => {
+  if (!resetTarget.value) return;
+  try {
+    const result = await memberStore.resetPassword(resetTarget.value.id);
+    resetResult.value = result;
+    isResetModalOpen.value = false;
+    isResetSuccessModalOpen.value = true;
+  } catch (error) {
+    console.error('Error al resetear contraseña:', error);
+  }
+};
+
+// --- RESET PASSWORD + EMAIL ---
+const isResetEmailModalOpen = ref(false);
+const isResetEmailSuccessModalOpen = ref(false);
+const resetEmailTarget = ref<{ id: string; name: string; email: string } | null>(null);
+const resetEmailResult = ref<{ email: string } | null>(null);
+
+const openResetPasswordEmailModal = (member: any) => {
+  resetEmailTarget.value = { id: member.id, name: member.name, email: member.email };
+  resetEmailResult.value = null;
+  isResetEmailModalOpen.value = true;
+};
+
+const confirmResetPasswordEmail = async () => {
+  if (!resetEmailTarget.value) return;
+  try {
+    const result = await memberStore.resetPasswordAndSendEmail(resetEmailTarget.value.id);
+    resetEmailResult.value = result;
+    isResetEmailModalOpen.value = false;
+    isResetEmailSuccessModalOpen.value = true;
+  } catch (error) {
+    console.error('Error al resetear y enviar contraseña:', error);
+  }
+};
 </script>
 
 <style scoped>
@@ -358,6 +530,30 @@ const confirmDelete = async () => {
 .roles-cell { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 .owner-icon { color: var(--accent-amber); margin-right: 4px; }
 .modal-footer { display: flex; gap: var(--space-2); width: 100%; }
+
+.password-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.copy-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
 
 /* ROW ACTIONS DROPDOWN */
 .dropdown-overlay {

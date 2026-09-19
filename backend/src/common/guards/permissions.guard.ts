@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator.js';
+import { SystemRoles } from '../constants/roles.js';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -27,7 +28,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Owner bypass
     const userRoles: string[] = user.roles || [];
-    if (userRoles.includes('Owner')) {
+    if (userRoles.includes(SystemRoles.OWNER)) {
       return true;
     }
 

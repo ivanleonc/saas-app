@@ -11,7 +11,7 @@ export class PermissionRepository {
     );
   }
 
-  async findByIds(ids: number[]) {
+  async findByIds(ids: string[]) {
     if (ids.length === 0) return [];
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
     return this.dataSource.query(

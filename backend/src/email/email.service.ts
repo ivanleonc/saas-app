@@ -56,4 +56,20 @@ export class EmailService {
       `,
     });
   }
+
+  async sendTemporaryPassword(email: string, tempPassword: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    await this.send({
+      to: email,
+      subject: 'Tu contraseña temporal - SaaS',
+      html: `
+        <h2>Tu contraseña temporal ha sido generada</h2>
+        <p>Un administrador ha restablecido tu contraseña. Tu nueva contraseña temporal es:</p>
+        <code style="background:#f4f4f4;padding:8px 16px;border-radius:4px;font-size:16px">${tempPassword}</code>
+        <p>Por seguridad, deberás cambiar esta contraseña en tu próximo inicio de sesión.</p>
+        <p><a href="${frontendUrl}/login" style="background:#007bff;color:white;padding:10px 20px;border-radius:4px;text-decoration:none;display:inline-block">Iniciar sesión</a></p>
+        <p>Si no solicitaste este cambio, contacta al administrador de tu organización.</p>
+      `,
+    });
+  }
 }

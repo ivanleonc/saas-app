@@ -137,6 +137,31 @@ export class PasswordService {
     return { message: 'Contraseña recuperada y actualizada correctamente.' };
   }
 
+  async hashPassword(plainPassword: string): Promise<string> {
+    return bcrypt.hash(plainPassword, SALT_ROUNDS);
+  }
+
+  async adminResetPassword(adminUserId: string, targetUserId: string, companyId: string, tempPasswordPlain: string) {
+    const targetUser = await this.userRepository.findById(targetUserId);
+    if (!targetUser) throw new UnauthorizedException('Usuario no encontrado');
+
+    const newHash = await bcrypt.hash(tempPasswordPlain, SALT_ROUNDS);
+    await this.checkPasswordHistory(targetUserId, newHash);
+    await this.userRepository.updatePassword(targetUserId, newHash);
+    await this.savePasswordHistory(targetUserId, newHash);
+
+    await this.auditLogService.log({
+      userId: adminUserId,
+      companyId,
+      action: 'ADMIN_PASSWORD_RESET',
+      entityType: 'User',
+      entityId: targetUserId,
+      newValues: { target_email: targetUser.email },
+    });
+
+    return { message: 'Contraseña reseteada exitosamente.' };
+  }
+
   private async checkPasswordHistory(userId: string, newPasswordHash: string): Promise<void> {
     const recentHashes = await this.passwordHistoryRepository.getRecent(userId, PASSWORD_HISTORY_LIMIT);
     for (const oldHash of recentHashes) {

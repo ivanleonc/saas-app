@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { PROTECTED_ROLES } from '../../common/constants/roles.js';
 
 @Injectable()
 export class RoleRepository {
@@ -52,9 +53,10 @@ export class RoleRepository {
   }
 
   async delete(id: string) {
+    const placeholders = PROTECTED_ROLES.map((_, i) => `$${i + 2}`).join(', ');
     await this.dataSource.query(
-      `UPDATE roles SET deleted_at = NOW() WHERE id = $1 AND name NOT IN ('Owner', 'Admin')`,
-      [id],
+      `UPDATE roles SET deleted_at = NOW() WHERE id = $1 AND name NOT IN (${placeholders})`,
+      [id, ...PROTECTED_ROLES],
     );
   }
 
@@ -69,7 +71,7 @@ export class RoleRepository {
     );
   }
 
-  async setPermissions(roleId: string, permissionIds: number[]) {
+  async setPermissions(roleId: string, permissionIds: string[]) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

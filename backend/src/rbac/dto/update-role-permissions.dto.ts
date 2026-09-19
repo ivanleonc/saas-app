@@ -1,10 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsArray, IsNumber } from 'class-validator';
+import { IsOptional, IsArray, IsUUID } from 'class-validator';
 
 export class UpdateRolePermissionsDto {
-  @ApiPropertyOptional({ example: [1, 2, 5, 7], description: 'IDs completos de permisos para el rol' })
+  @ApiPropertyOptional({ example: ['a1b2c3d4-e5f6-7890-abcd-ef1234567890'], description: 'UUIDs completos de permisos para el rol' })
   @IsOptional()
   @IsArray()
-  @IsNumber({}, { each: true })
-  permissionIds?: number[];
+  @IsUUID(undefined, { each: true })
+  permissionIds?: string[];
 }

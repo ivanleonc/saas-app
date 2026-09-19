@@ -21,4 +21,14 @@ export const memberService = {
     const response = await apiClient.delete(`/companies/users/${userId}`);
     return response.data;
   },
+
+  async resetPassword(userId: string) {
+    const response = await apiClient.post(`/companies/users/${userId}/reset-password`);
+    return response.data;
+  },
+
+  async resetPasswordAndSendEmail(userId: string) {
+    const response = await apiClient.post(`/companies/users/${userId}/reset-password-email`);
+    return response.data;
+  },
 };

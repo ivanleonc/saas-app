@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PermissionRepository } from './repositories/permission.repository.js';
 import { RoleRepository } from './repositories/role.repository.js';
+import { SystemRoles, IMMUTABLE_ROLES, PROTECTED_ROLES } from '../common/constants/roles.js';
 
 @Injectable()
 export class RbacService {
@@ -29,7 +30,7 @@ export class RbacService {
     return { ...role, permissions };
   }
 
-  async createRole(name: string, permissionIds: number[], companyId?: string) {
+  async createRole(name: string, permissionIds: string[], companyId?: string) {
     const existing = await this.roleRepository.findByName(name, companyId);
     if (existing) throw new ConflictException(`El rol "${name}" ya existe`);
 
@@ -42,12 +43,12 @@ export class RbacService {
     return { ...role, permissions: await this.roleRepository.getPermissions(role.id) };
   }
 
-  async updateRolePermissions(roleId: string, permissionIds: number[]) {
+  async updateRolePermissions(roleId: string, permissionIds: string[]) {
     const role = await this.roleRepository.findById(roleId);
     if (!role) throw new NotFoundException('Rol no encontrado');
 
-    if (role.name === 'Owner') {
-      throw new ConflictException('No se pueden modificar los permisos del rol Owner');
+    if (IMMUTABLE_ROLES.includes(role.name as any)) {
+      throw new ConflictException(`No se pueden modificar los permisos del rol ${role.name}`);
     }
 
     await this.roleRepository.setPermissions(roleId, permissionIds);
@@ -58,8 +59,8 @@ export class RbacService {
     const role = await this.roleRepository.findById(id);
     if (!role) throw new NotFoundException('Rol no encontrado');
 
-    if (role.name === 'Owner' || role.name === 'Admin') {
-      throw new ConflictException('No se pueden eliminar los roles del sistema (Owner, Admin)');
+    if (PROTECTED_ROLES.includes(role.name as any)) {
+      throw new ConflictException(`No se pueden eliminar los roles del sistema (${PROTECTED_ROLES.join(', ')})`);
     }
 
     await this.roleRepository.delete(id);

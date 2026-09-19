@@ -18,7 +18,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const duration = Date.now() - startTime;
-        const action = `${method} ${url}`;
+        const action = `${method} ${this.normalizeUrl(url)}`;
 
         this.auditLogService.log({
           userId: user?.id,
@@ -36,9 +36,18 @@ export class AuditLogInterceptor implements NestInterceptor {
     );
   }
 
+  private normalizeUrl(url: string): string {
+    return url.replace(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      ':id',
+    );
+  }
+
   private extractEntityType(url: string): string {
     if (url.includes('/auth')) return 'Auth';
     if (url.includes('/companies')) return 'Company';
+    if (url.includes('/roles')) return 'Role';
+    if (url.includes('/users')) return 'User';
     return 'Unknown';
   }
 

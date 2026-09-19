@@ -5,6 +5,7 @@ import { CreateRoleDto } from './dto/create-role.dto.js';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { SystemRoles } from '../common/constants/roles.js';
 
 @ApiTags('RBAC - Roles & Permissions')
 @ApiBearerAuth()
@@ -42,7 +43,7 @@ export class RbacController {
 
   @Post('roles')
   @UseGuards(RolesGuard)
-  @Roles('Owner', 'Admin')
+  @Roles(SystemRoles.OWNER, SystemRoles.ADMIN)
   @ApiOperation({ summary: 'Crear un rol personalizado' })
   @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa (opcional)' })
   @ApiResponse({ status: 201, description: 'Rol creado exitosamente' })
@@ -57,7 +58,7 @@ export class RbacController {
 
   @Put('roles/:id/permissions')
   @UseGuards(RolesGuard)
-  @Roles('Owner')
+  @Roles(SystemRoles.OWNER)
   @ApiOperation({ summary: 'Actualizar permisos de un rol', description: 'Solo el Owner puede modificar permisos. El id debe ser un UUID válido.' })
   @ApiParam({ name: 'id', description: 'UUID del rol', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Permisos actualizados' })
@@ -74,7 +75,7 @@ export class RbacController {
 
   @Delete('roles/:id')
   @UseGuards(RolesGuard)
-  @Roles('Owner')
+  @Roles(SystemRoles.OWNER)
   @ApiOperation({ summary: 'Eliminar un rol personalizado', description: 'No se pueden eliminar Owner ni Admin. El id debe ser un UUID válido.' })
   @ApiParam({ name: 'id', description: 'UUID del rol', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiResponse({ status: 200, description: 'Rol eliminado' })

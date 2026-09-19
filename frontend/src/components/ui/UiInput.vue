@@ -1,22 +1,35 @@
 <template>
   <div class="input-group">
     <label v-if="label" :for="id" class="ui-label">{{ label }}</label>
-    <input
-      :id="id"
-      v-model="model"
-      :type="type"
-      :placeholder="placeholder"
-      :required="required"
-      :disabled="disabled"
-      class="ui-input"
-    />
+    <div class="input-wrapper">
+      <input
+        :id="id"
+        v-model="model"
+        :type="inputType"
+        :placeholder="placeholder"
+        :required="required"
+        :disabled="disabled"
+        class="ui-input"
+        :class="{ 'has-toggle': type === 'password' }"
+      />
+      <button
+        v-if="type === 'password'"
+        type="button"
+        class="password-toggle"
+        @click="togglePassword"
+        tabindex="-1"
+      >
+        <IconEye v-if="!showPassword" :size="16" stroke-width="1.8" />
+        <IconEyeOff v-else :size="16" stroke-width="1.8" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useId } from 'vue';
+import { ref, computed, useId } from 'vue';
+import { IconEye, IconEyeOff } from '@tabler/icons-vue';
 
-// Definición de Props genéricas y configurables
 interface Props {
   label?: string;
   type?: 'text' | 'email' | 'password' | 'number';
@@ -25,18 +38,26 @@ interface Props {
   disabled?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   placeholder: '',
   required: false,
   disabled: false
 });
 
-// Vinculación automática bidireccional del v-model externo
 const model = defineModel<string>({ default: '' });
 
-// Genera un ID único autogestionado para el label/input si no se provee
 const id = useId();
+const showPassword = ref(false);
+
+const inputType = computed(() => {
+  if (props.type !== 'password') return props.type;
+  return showPassword.value ? 'text' : 'password';
+});
+
+const togglePassword = () => {
+  showPassword.value = !showPassword.value;
+};
 </script>
 
 <style scoped>
@@ -53,6 +74,10 @@ const id = useId();
   line-height: 1;
 }
 
+.input-wrapper {
+  position: relative;
+}
+
 .ui-input {
   display: flex;
   height: 2.5rem;
@@ -65,6 +90,10 @@ const id = useId();
   color: var(--text-main);
   transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
+}
+
+.ui-input.has-toggle {
+  padding-right: 2.5rem;
 }
 
 .ui-input::placeholder {
@@ -80,5 +109,28 @@ const id = useId();
   opacity: 0.5;
   cursor: not-allowed;
   background-color: var(--bg-app);
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.password-toggle:hover {
+  color: var(--text-main);
+  background-color: var(--bg-hover);
 }
 </style>

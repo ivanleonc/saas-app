@@ -70,7 +70,7 @@
               <IconUsers :size="18" />
               <span>Gestionar Miembros</span>
             </router-link>
-            <router-link to="/dashboard/roles" class="action-card" v-permission="'roles:read'">
+            <router-link to="/dashboard/roles" class="action-card" v-permission="Permissions.ROLES.READ">
               <IconShieldLock :size="18" />
               <span>Configurar Roles</span>
             </router-link>
@@ -94,6 +94,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMemberStore } from '@/stores/member.store';
 import { roleService } from '@/services/role.service';
+import { Permissions } from '@/constants/permissions';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard.vue';
 import {

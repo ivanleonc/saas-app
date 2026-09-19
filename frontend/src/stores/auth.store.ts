@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { authService } from '@/services/auth.service';
 import { TokenService } from '@/utils/token.service';
 import type { LoginPayload, RegisterPayload, AuthUser } from '@/types/auth';
+import { SystemRoles } from '@/constants/roles';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null);
@@ -35,7 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const hasPermission = (permission: string): boolean => {
     if (!user.value) return false;
-    if (user.value.roles?.includes('Owner')) return true;
+    if (user.value.roles?.includes(SystemRoles.OWNER)) return true;
     return user.value.permissions?.includes(permission) || false;
   };
 

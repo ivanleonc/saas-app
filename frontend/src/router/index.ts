@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { Permissions } from '@/constants/permissions';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -66,7 +67,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/RolesView.vue'),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'roles:read',
+      requiredPermission: Permissions.ROLES.READ,
     },
   },
   {
@@ -91,6 +92,11 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresGuest && isAuthenticated) {
     return { name: 'Dashboard' };
+  }
+
+  // Force password change — block all pages except ChangePassword
+  if (isAuthenticated && authStore.user?.must_change_password && to.name !== 'ChangePassword') {
+    return { name: 'ChangePassword' };
   }
 
   if (to.meta.requiredPermission) {

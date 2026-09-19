@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Headers, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Headers, UseGuards, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { MemberService } from './member.service.js';
 import { AddMemberDto } from './dto/add-member.dto.js';
@@ -118,6 +118,78 @@ export class MemberController {
       status: dto.status,
     });
     return { success: true, ...result };
+  }
+
+  @Post(':userId/reset-password')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions('users:update')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resetear contraseña de un miembro', description: 'Genera una nueva contraseña temporal. Requiere permiso users:update. El userId debe ser un UUID válido.' })
+  @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
+  @ApiParam({ name: 'userId', description: 'UUID del usuario', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña reseteada',
+    schema: {
+      example: {
+        success: true,
+        message: 'Contraseña reseteada exitosamente.',
+        data: {
+          temporary_password: 'xK9mN2pQ7rS',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'userId no es un UUID válido' })
+  @ApiResponse({ status: 403, description: 'Permiso denegado' })
+  @ApiResponse({ status: 404, description: 'Miembro no encontrado' })
+  async resetPassword(
+    @CurrentUser('id') userId: string,
+    @Headers('x-company-id') companyId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
+  ) {
+    const result = await this.memberService.resetPassword(userId, companyId, targetUserId);
+    return {
+      success: true,
+      message: 'Contraseña reseteada exitosamente.',
+      data: result,
+    };
+  }
+
+  @Post(':userId/reset-password-email')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions('users:update')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resetear contraseña y enviar al correo del miembro', description: 'Genera una contraseña temporal y la envía al email del usuario. Requiere permiso users:update.' })
+  @ApiHeader({ name: 'x-company-id', description: 'UUID de la empresa activa', required: true })
+  @ApiParam({ name: 'userId', description: 'UUID del usuario', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña reseteada y enviada por email',
+    schema: {
+      example: {
+        success: true,
+        message: 'Contraseña reseteada y enviada a juan@empresa.com',
+        data: {
+          email: 'juan@empresa.com',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'userId no es un UUID válido' })
+  @ApiResponse({ status: 403, description: 'Permiso denegado' })
+  @ApiResponse({ status: 404, description: 'Miembro no encontrado' })
+  async resetPasswordAndSendEmail(
+    @CurrentUser('id') userId: string,
+    @Headers('x-company-id') companyId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
+  ) {
+    const result = await this.memberService.resetPasswordAndSendEmail(userId, companyId, targetUserId);
+    return {
+      success: true,
+      message: `Contraseña reseteada y enviada a ${result.email}`,
+      data: result,
+    };
   }
 
   @Delete(':userId')

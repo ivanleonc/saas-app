@@ -60,5 +60,23 @@ export const useMemberStore = defineStore('member', () => {
     }, 'Error al eliminar el miembro');
   };
 
-  return { members, isLoading, error, fetchMembers, addMember, updateMember, removeMember };
+  const resetPassword = async (userId: string) => {
+    if (!currentCompanyId.value) throw new Error('No hay una empresa activa seleccionada');
+    const result = await withLoading(async () => {
+      const response = await memberService.resetPassword(userId);
+      return response.data;
+    }, 'Error al resetear la contraseña');
+    return result;
+  };
+
+  const resetPasswordAndSendEmail = async (userId: string) => {
+    if (!currentCompanyId.value) throw new Error('No hay una empresa activa seleccionada');
+    const result = await withLoading(async () => {
+      const response = await memberService.resetPasswordAndSendEmail(userId);
+      return response.data;
+    }, 'Error al resetear y enviar contraseña');
+    return result;
+  };
+
+  return { members, isLoading, error, fetchMembers, addMember, updateMember, removeMember, resetPassword, resetPasswordAndSendEmail };
 });

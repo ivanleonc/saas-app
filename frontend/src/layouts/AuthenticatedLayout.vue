@@ -121,7 +121,7 @@
             <IconUsers :size="22" stroke-width="1.8" />
             <span class="nav-label">Team</span>
           </router-link>
-          <router-link to="/dashboard/roles" class="nav-link" active-class="active" v-permission="'roles:read'">
+          <router-link to="/dashboard/roles" class="nav-link" active-class="active" v-permission="Permissions.ROLES.READ">
             <IconShieldLock :size="22" stroke-width="1.8" />
             <span class="nav-label">Roles</span>
           </router-link>
@@ -184,6 +184,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyStore } from '@/stores/company.store';
 import { useTheme } from '@/composables/useTheme';
+import { Permissions } from '@/constants/permissions';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';

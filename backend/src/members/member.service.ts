@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { MemberRepository } from './repositories/member.repository.js';
-import * as bcrypt from 'bcrypt';
+import { PasswordService } from '../auth/password.service.js';
+import { EmailService } from '../email/email.service.js';
 
-const SALT_ROUNDS = 10;
 const TEMP_PASSWORD_LENGTH = 12;
 
 @Injectable()
 export class MemberService {
-  constructor(private readonly memberRepository: MemberRepository) {}
+  constructor(
+    private readonly memberRepository: MemberRepository,
+    private readonly passwordService: PasswordService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async getMembers(companyId: string) {
     return this.memberRepository.getMembersByCompany(companyId);
@@ -15,20 +19,47 @@ export class MemberService {
 
   async addMember(companyId: string, email: string, name: string, roleIds: string[]) {
     const tempPassword = this.generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
-
-    const result = await this.memberRepository.addMember(
-      companyId, email, name, roleIds, passwordHash,
-    );
+    const passwordHash = await this.passwordService.hashPassword(tempPassword);
+    const result = await this.memberRepository.addMember(companyId, email, name, roleIds, passwordHash);
 
     return {
       ...result,
-      temporary_password: result.isNewUser ? tempPassword : undefined,
+      temporary_password: tempPassword,
     };
   }
 
   async updateMember(companyId: string, userId: string, data: { roleIds?: string[]; status?: string }) {
     return this.memberRepository.updateMember(companyId, userId, data);
+  }
+
+  async resetPassword(adminUserId: string, companyId: string, targetUserId: string) {
+    const isMember = await this.memberRepository.isAlreadyMember(targetUserId, companyId);
+    if (!isMember) {
+      throw new NotFoundException('El usuario no es miembro de esta empresa');
+    }
+
+    const tempPassword = this.generateTempPassword();
+    await this.passwordService.adminResetPassword(adminUserId, targetUserId, companyId, tempPassword);
+
+    return { temporary_password: tempPassword };
+  }
+
+  async resetPasswordAndSendEmail(adminUserId: string, companyId: string, targetUserId: string) {
+    const isMember = await this.memberRepository.isAlreadyMember(targetUserId, companyId);
+    if (!isMember) {
+      throw new NotFoundException('El usuario no es miembro de esta empresa');
+    }
+
+    const user = await this.memberRepository.findUserById(targetUserId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const tempPassword = this.generateTempPassword();
+    await this.passwordService.adminResetPassword(adminUserId, targetUserId, companyId, tempPassword);
+    await this.emailService.sendTemporaryPassword(user.email, tempPassword);
+
+    return { email: user.email };
   }
 
   async removeMember(companyId: string, userId: string) {
