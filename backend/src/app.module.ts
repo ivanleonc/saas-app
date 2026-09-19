@@ -1,0 +1,48 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AuthModule } from './auth/auth.module.js';
+import { CompanyModule } from './company/company.module.js';
+import { AuditLogModule } from './audit/audit-log.module.js';
+import { AuditLogInterceptor } from './audit/audit-log.interceptor.js';
+import { EmailModule } from './email/email.module.js';
+import { RbacModule } from './rbac/rbac.module.js';
+import { MemberModule } from './members/member.module.js';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 30,
+    }]),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
+        autoLoadEntities: true,
+        synchronize: false,
+      }),
+    }),
+    AuditLogModule,
+    EmailModule,
+    AuthModule,
+    CompanyModule,
+    RbacModule,
+    MemberModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+  ],
+})
+export class AppModule {}

@@ -7,29 +7,52 @@
       </div>
 
       <div class="form-section">
-        <form @submit.prevent="handleSave">
+        <UiCard>
+          <template #header>
+            <h3 class="card-title">Datos del Perfil</h3>
+          </template>
+
+          <div class="form-body">
+            <UiAlert v-if="errorMessage" type="error">{{ errorMessage }}</UiAlert>
+            <UiAlert v-if="successMessage" type="success">{{ successMessage }}</UiAlert>
+
+            <UiInput v-model="form.name" label="Nombre Completo" required />
+            <UiInput v-model="form.email" label="Correo Electrónico" type="email" required disabled />
+          </div>
+        </UiCard>
+
+        <form @submit.prevent="handlePasswordChange">
           <UiCard>
             <template #header>
-              <h3 class="card-title">Datos del Perfil</h3>
+              <h3 class="card-title">Cambiar Contraseña</h3>
             </template>
 
             <div class="form-body">
-              <UiAlert v-if="errorMessage" type="error">{{ errorMessage }}</UiAlert>
-              <UiAlert v-if="successMessage" type="success">{{ successMessage }}</UiAlert>
+              <UiAlert v-if="passwordError" type="error">{{ passwordError }}</UiAlert>
+              <UiAlert v-if="passwordSuccess" type="success">{{ passwordSuccess }}</UiAlert>
 
-              <UiInput v-model="form.name" label="Nombre Completo" required />
-              <UiInput v-model="form.email" label="Correo Electrónico" type="email" required />
-              
-              <UiInput 
-                v-model="form.password" 
-                label="Nueva Contraseña (Dejar en blanco para no cambiar)" 
-                type="password" 
-                placeholder="******" 
+              <UiInput
+                v-model="passwordForm.currentPassword"
+                label="Contraseña Actual"
+                type="password"
+                required
+              />
+              <UiInput
+                v-model="passwordForm.newPassword"
+                label="Nueva Contraseña"
+                type="password"
+                required
+              />
+              <UiInput
+                v-model="passwordForm.confirmPassword"
+                label="Confirmar Nueva Contraseña"
+                type="password"
+                required
               />
             </div>
 
             <template #footer>
-              <UiButton type="submit" :loading="isSaving">Guardar Cambios</UiButton>
+              <UiButton type="submit" :loading="isChangingPassword">Actualizar Contraseña</UiButton>
             </template>
           </UiCard>
         </form>
@@ -41,7 +64,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
-import { userService } from '@/services/user.service';
+import { authService } from '@/services/auth.service';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -51,47 +74,52 @@ import UiAlert from '@/components/ui/UiAlert.vue';
 
 const authStore = useAuthStore();
 
-const isSaving = ref(false);
 const errorMessage = ref<string | null>(null);
 const successMessage = ref('');
+
+const passwordError = ref('');
+const passwordSuccess = ref('');
+const isChangingPassword = ref(false);
 
 const form = reactive({
   name: '',
   email: '',
-  password: ''
 });
 
-onMounted(() => {
+const passwordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+});
+
+onMounted(async () => {
+  await authStore.fetchProfile();
   if (authStore.user) {
-    form.name = authStore.user.name;
+    form.name = authStore.user.name || '';
     form.email = authStore.user.email;
   }
 });
 
-const handleSave = async () => {
-  isSaving.value = true;
-  errorMessage.value = null;
-  successMessage.value = '';
+const handlePasswordChange = async () => {
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    passwordError.value = 'Las contraseñas no coinciden.';
+    return;
+  }
+
+  isChangingPassword.value = true;
+  passwordError.value = '';
+  passwordSuccess.value = '';
 
   try {
-    const response = await userService.updateProfile({
-      name: form.name,
-      email: form.email,
-      password: form.password || undefined
-    });
-
-    // Actualizamos Pinia y LocalStorage con los datos devueltos por el backend
-    authStore.updateProfileData({
-      name: response.data.name,
-      email: response.data.email
-    });
-
-    form.password = ''; // Limpiamos el campo visual de la contraseña
-    successMessage.value = '¡Tu perfil ha sido actualizado con éxito!';
+    await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+    passwordSuccess.value = 'Contraseña actualizada correctamente.';
+    passwordForm.currentPassword = '';
+    passwordForm.newPassword = '';
+    passwordForm.confirmPassword = '';
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.error || 'Error al actualizar el perfil';
+    passwordError.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contraseña';
   } finally {
-    isSaving.value = false;
+    isChangingPassword.value = false;
   }
 };
 </script>
@@ -102,4 +130,5 @@ const handleSave = async () => {
 .page-subtitle { margin: 0.5rem 0 0; color: var(--text-muted); }
 .card-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: var(--text-main); }
 .form-body { display: flex; flex-direction: column; gap: 1rem; }
+.form-section { display: flex; flex-direction: column; gap: 1.5rem; }
 </style>

@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/axios';
-import type { LoginPayload, RegisterPayload, AuthResponse } from '@/types/auth';
+import type { LoginPayload, RegisterPayload, AuthResponse, ProfileResponse, TokenPair } from '@/types/auth';
 
 export class AuthService {
   async login(payload: LoginPayload): Promise<AuthResponse> {
@@ -12,16 +12,48 @@ export class AuthService {
     return response.data;
   }
 
-  async forgotPassword(email: string): Promise<any> {
-    const response = await apiClient.post('/auth/forgot-password', { email });
+  async refresh(refreshToken: string): Promise<{ success: boolean; data: TokenPair }> {
+    const response = await apiClient.post<{ success: boolean; data: TokenPair }>('/auth/refresh', { refreshToken });
     return response.data;
   }
 
-  async resetPassword(payload: any): Promise<any> {
-    const response = await apiClient.post('/auth/reset-password', payload);
+  async logout(refreshToken?: string): Promise<void> {
+    await apiClient.post('/auth/logout', { refreshToken });
+  }
+
+  async getProfile(): Promise<ProfileResponse> {
+    const response = await apiClient.get<ProfileResponse>('/auth/me');
+    return response.data;
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  }
+
+  async changeTemporaryPassword(newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/auth/change-temporary-password', {
+      newPassword,
+    });
+    return response.data;
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/auth/reset-password', {
+      email,
+      token,
+      newPassword,
+    });
     return response.data;
   }
 }
 
-// Exportamos la instancia, lista para usarse o mockearse
 export const authService = new AuthService();

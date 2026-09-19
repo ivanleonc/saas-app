@@ -34,18 +34,13 @@ const handleSubmit = async () => {
 
   isLoading.value = true;
   errorMsg.value = '';
-  
+
   try {
-    await authService.resetPassword({
-      email: email.value,
-      token: token.value,
-      password: password.value
-    });
-    
+    await authService.resetPassword(email.value, token.value, password.value);
     successMsg.value = 'Tu contraseña ha sido actualizada. Redirigiendo...';
     setTimeout(() => router.push('/login'), 3000);
   } catch (error: any) {
-    errorMsg.value = error.response?.data?.error || 'El enlace caducó o es inválido.';
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'El enlace caducó o es inválido.';
   } finally {
     isLoading.value = false;
   }
@@ -85,7 +80,7 @@ const handleSubmit = async () => {
           <UiButton v-if="!successMsg && token && email" type="submit" :loading="isLoading">
             Actualizar Contraseña
           </UiButton>
-          
+
           <div class="auth-footer-links">
             <p><router-link to="/login">Ir al Login</router-link></p>
           </div>
@@ -96,14 +91,7 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
-.auth-wrapper {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-app);
-  padding: 1rem;
-}
+.auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: var(--bg-app); padding: 1rem; }
 .auth-title { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main); }
 .auth-description { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
 .form-content { display: flex; flex-direction: column; gap: 1rem; }

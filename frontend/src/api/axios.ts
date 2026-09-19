@@ -1,6 +1,20 @@
 import axios from 'axios';
 import { TokenService } from '@/utils/token.service';
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   headers: {
@@ -8,48 +22,86 @@ export const apiClient = axios.create({
   },
 });
 
-// Interceptor de Peticiones
 apiClient.interceptors.request.use(
   (config) => {
     const token = TokenService.getToken();
     if (token && config.headers) {
-      // Usamos la asignación de diccionario que es a prueba de fallos en cualquier versión de Axios
       config.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Política Zero-Trust: Adjuntamos automáticamente en cada petición el Company ID activo
     try {
       const storageData = localStorage.getItem('saas_auth_storage');
       if (storageData) {
         const parsed = JSON.parse(storageData);
-        if (parsed.activeTenantId && config.headers) {
-          config.headers['x-company-id'] = String(parsed.activeTenantId);
+        if (parsed.state?.activeTenantId && config.headers) {
+          config.headers['x-company-id'] = String(parsed.state.activeTenantId);
         }
       }
-    } catch (e) {
-      console.warn('No se pudo leer el id de la empresa del storage local');
-    }
+    } catch {}
 
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Interceptor de Respuestas
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // 1. Limpieza total
-      TokenService.destroyToken();
-      localStorage.removeItem('saas_user');
-      localStorage.removeItem('saas_active_tenant');
-      
-      // 2. Redirigir SOLO si no estamos ya en la página de login
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const currentRefreshToken = TokenService.getRefreshToken();
+      if (!currentRefreshToken) {
+        isRefreshing = false;
+        TokenService.destroyTokens();
+        localStorage.removeItem('saas_user');
+        localStorage.removeItem('saas_active_tenant');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/refresh`,
+          { refreshToken: currentRefreshToken }
+        );
+
+        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        TokenService.saveTokens(accessToken, newRefreshToken);
+        processQueue(null, accessToken);
+
+        originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        TokenService.destroyTokens();
+        localStorage.removeItem('saas_user');
+        localStorage.removeItem('saas_active_tenant');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

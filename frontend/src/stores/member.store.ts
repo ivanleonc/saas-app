@@ -54,7 +54,7 @@ const currentCompanyId = computed(() => {
   };
 
   // Acción: Actualizar Miembro
-  const updateMember = async (userId: number, payload: UpdateMemberPayload) => {
+  const updateMember = async (userId: string, payload: UpdateMemberPayload) => {
     if (!currentCompanyId.value) return;
     isLoading.value = true;
     error.value = null;
@@ -70,7 +70,7 @@ const currentCompanyId = computed(() => {
   };
 
   // Acción: Eliminar Miembro
-  const removeMember = async (userId: number) => {
+  const removeMember = async (userId: string) => {
     if (!currentCompanyId.value) return;
     isLoading.value = true;
     error.value = null;

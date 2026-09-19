@@ -31,7 +31,7 @@
             <h4 class="permissions-title">Permisos Asignados</h4>
             <div class="permissions-list">
               <span v-for="perm in role.permissions" :key="perm.id" class="permission-badge">
-                {{ perm.name }}
+                {{ perm.code }}
               </span>
               <span v-if="role.permissions.length === 0" class="text-muted">Ningún permiso asignado.</span>
             </div>
@@ -56,7 +56,7 @@
               <div class="checkbox-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
                 <label v-for="perm in allPermissions" :key="perm.id" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
                   <input type="checkbox" :value="perm.id" v-model="form.permissionIds" />
-                  {{ perm.name }}
+                {{ perm.code }}
                 </label>
               </div>
             </div>

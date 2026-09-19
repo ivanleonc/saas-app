@@ -1,45 +1,47 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { authService } from '@/services/auth.service';
 import { TokenService } from '@/utils/token.service';
-import type { LoginPayload, RegisterPayload } from '@/types/auth';
+import type { LoginPayload, RegisterPayload, AuthUser } from '@/types/auth';
 
 export const useAuthStore = defineStore('auth', () => {
-  // 1. ESTADO
-  const user = ref<any>(null);
-  const token = ref<string | null>(TokenService.getToken());
-  const activeTenantId = ref<number | null>(null);
-  
+  const user = ref<AuthUser | null>(null);
+  const accessToken = ref<string | null>(TokenService.getToken());
+  const refreshToken = ref<string | null>(TokenService.getRefreshToken());
+  const activeTenantId = ref<string | null>(null);
+
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // 2. ACTUALIZACIÓN DE SESIÓN
-  const setSession = (newToken: string, userData: any) => {
-    token.value = newToken;
+  const isAuthenticated = computed(() => !!accessToken.value);
+  const currentTenant = computed(() =>
+    user.value?.tenants?.find((t) => t.id === activeTenantId.value)
+  );
+
+  const setSession = (access: string, refresh: string, userData: AuthUser) => {
+    accessToken.value = access;
+    refreshToken.value = refresh;
     user.value = userData;
+    TokenService.saveTokens(access, refresh);
 
     if (userData?.tenants?.length > 0 && !activeTenantId.value) {
       activeTenantId.value = userData.tenants[0].id;
     }
-    TokenService.saveToken(newToken);
   };
 
-  const setActiveTenant = (tenantId: number) => {
+  const setActiveTenant = (tenantId: string) => {
     activeTenantId.value = tenantId;
   };
 
-  const updateToken = (newToken: string) => {
-    token.value = newToken;
-    TokenService.saveToken(newToken);
+  const hasPermission = (permission: string): boolean => {
+    if (!user.value) return false;
+    if (user.value.roles?.includes('Owner')) return true;
+    return user.value.permissions?.includes(permission) || false;
   };
 
-  // 3. LIMPIEZA TOTAL AL SALIR
-  const logout = () => {
-    user.value = null;
-    token.value = null;
-    activeTenantId.value = null;
-    
-    TokenService.destroyToken();
+  const hasRole = (role: string): boolean => {
+    if (!user.value) return false;
+    return user.value.roles?.includes(role) || false;
   };
 
   const login = async (payload: LoginPayload) => {
@@ -47,11 +49,12 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const response = await authService.login(payload);
-      const { token: jwt, user: userData } = response.data || response; 
-      setSession(jwt, userData);
+      const { accessToken: access, refreshToken: refresh, user: userData } = response.data;
+      setSession(access, refresh, userData);
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al iniciar sesión';
-      throw err; 
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Error al iniciar sesión';
+      error.value = msg;
+      throw err;
     } finally {
       isLoading.value = false;
     }
@@ -62,14 +65,57 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const response = await authService.register(payload);
-      const { token: jwt, user: userData } = response.data || response;
-      setSession(jwt, userData);
+      const { accessToken: access, refreshToken: refresh, user: userData } = response.data;
+      setSession(access, refresh, userData);
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al registrar usuario';
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Error al registrar usuario';
+      error.value = msg;
       throw err;
     } finally {
       isLoading.value = false;
     }
+  };
+
+  const refreshTokens = async (): Promise<boolean> => {
+    if (!refreshToken.value) return false;
+    try {
+      const response = await authService.refresh(refreshToken.value);
+      const { accessToken: access, refreshToken: refresh } = response.data;
+      accessToken.value = access;
+      refreshToken.value = refresh;
+      TokenService.saveTokens(access, refresh);
+      return true;
+    } catch {
+      logout();
+      return false;
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await authService.getProfile();
+      user.value = response.data;
+      if (response.data?.tenants?.length > 0 && !activeTenantId.value) {
+        activeTenantId.value = response.data.tenants[0].id;
+      }
+    } catch {
+      // Silently fail — the interceptor will handle 401
+    }
+  };
+
+  const logout = async () => {
+    try {
+      if (refreshToken.value) {
+        await authService.logout(refreshToken.value);
+      }
+    } catch {}
+    user.value = null;
+    accessToken.value = null;
+    refreshToken.value = null;
+    activeTenantId.value = null;
+    TokenService.destroyTokens();
+    localStorage.removeItem('saas_user');
+    localStorage.removeItem('saas_active_tenant');
   };
 
   const updateProfileData = (updatedUserData: { name: string; email: string }) => {
@@ -79,10 +125,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  return { user, token, activeTenantId, isLoading, error, login, logout, register, setActiveTenant, updateToken, updateProfileData };
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    activeTenantId,
+    isLoading,
+    error,
+    isAuthenticated,
+    currentTenant,
+    login,
+    logout,
+    register,
+    refreshTokens,
+    fetchProfile,
+    setActiveTenant,
+    updateProfileData,
+    hasPermission,
+    hasRole,
+  };
 }, {
   persist: {
     key: 'saas_auth_storage',
-    pick: ['user', 'activeTenantId'],
-  }
+    pick: ['user', 'activeTenantId', 'refreshToken'],
+  },
 });

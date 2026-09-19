@@ -206,8 +206,8 @@ const handleAddSubmit = async () => {
 // --- ESTADOS DEL MODAL DE EDICIÓN ---
 const isEditModalOpen = ref(false);
 const editForm = reactive({
-  id: 0,
-  name: '', // Solo visual, para que el admin sepa a quién edita
+  id: '',
+  name: '',
   roleIds: [] as number[],
   status: 'active'
 });
@@ -249,7 +249,7 @@ const handleEditSubmit = async () => {
 };
 
 // --- LÓGICA DE ELIMINAR MIEMBRO ---
-const handleDelete = async (userId: number, userName: string) => {
+const handleDelete = async (userId: string, userName: string) => {
   // Usamos el confirm nativo del navegador por simplicidad y UX directa
   const isConfirmed = window.confirm(`¿Estás seguro de que deseas eliminar permanentemente a ${userName} de la empresa?`);
   if (!isConfirmed) return;

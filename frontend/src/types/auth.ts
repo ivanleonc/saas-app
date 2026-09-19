@@ -4,22 +4,46 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  name: string;
+  name?: string;
   email: string;
   password: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  must_change_password: boolean;
+  email_verified: boolean;
+  password_expired: boolean;
+  tenants: Tenant[];
+  roles: string[];
+  permissions: string[];
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  tax_id: string | null;
+  roles: string[];
 }
 
 export interface AuthResponse {
   success: boolean;
   message: string;
   data: {
-    token: string;
-    user: {
-      id: number;
-      name: string;
-      email: string;
-      is_super_admin: boolean;
-      tenants: any[];
-    }
-  }
+    accessToken: string;
+    refreshToken: string;
+    user: AuthUser;
+  };
+}
+
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface ProfileResponse {
+  success: boolean;
+  data: AuthUser;
 }
