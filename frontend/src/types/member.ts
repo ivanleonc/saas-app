@@ -10,7 +10,7 @@ export interface Member {
 export interface CreateMemberPayload {
   name: string;
   email: string;
-  roleIds?: number[];
+  roleIds?: string[];
 }
 
 export interface MembersResponse {
@@ -31,6 +31,6 @@ export interface CreateMemberResponse {
 }
 
 export interface UpdateMemberPayload {
-  roleIds?: number[];
+  roleIds?: string[];
   status?: 'active' | 'inactive';
 }

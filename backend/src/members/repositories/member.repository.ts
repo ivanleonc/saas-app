@@ -35,7 +35,7 @@ export class MemberRepository {
     return result.length > 0;
   }
 
-  async addMember(companyId: string, email: string, name: string, roleIds: number[]) {
+  async addMember(companyId: string, email: string, name: string, roleIds: string[]) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -115,7 +115,7 @@ export class MemberRepository {
     }
   }
 
-  async updateMember(companyId: string, userId: string, data: { roleIds?: number[]; status?: string }) {
+  async updateMember(companyId: string, userId: string, data: { roleIds?: string[]; status?: string }) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

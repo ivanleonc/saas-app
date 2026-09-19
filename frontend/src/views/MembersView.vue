@@ -20,7 +20,7 @@
                 <th>Email</th>
                 <th>Rol</th>
                 <th>Estado</th>
-                <th class="text-right">Acciones</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -46,13 +46,12 @@
                     {{ member.status || 'Active' }}
                   </span>
                 </td>
-                <td class="text-right">
-                  <button class="action-btn edit-btn" @click="openEditModal(member)" v-permission="'users:update'">
-                    Editar
-                  </button>
-                  <button class="action-btn delete-btn" @click="handleDelete(member.id, member.name)" v-permission="'users:delete'">
-                    Eliminar
-                  </button>
+                <td>
+                  <div class="row-actions" v-permission="'users:update'" :ref="el => setRowRef(member.id, el)">
+                    <button class="dots-btn" @click.stop="toggleRowMenu(member.id)">
+                      <IconDotsVertical :size="16" stroke-width="1.8" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -148,6 +147,23 @@
       </UiModal>
 
     </div>
+
+    <!-- Teleported row dropdown -->
+    <Teleport to="body">
+      <div v-if="openRowMenuId" class="dropdown-overlay" @click="openRowMenuId = null"></div>
+      <div v-if="openRowMenuId && rowRefs[openRowMenuId]" class="row-dropdown" :style="getDropdownPosition(openRowMenuId)">
+        <div class="dropdown-item" @click="handleEditFromDropdown">
+          <IconPencil :size="14" stroke-width="1.8" />
+          <span>Editar</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item danger" @click="handleDeleteFromDropdown" v-permission="'users:delete'">
+          <IconTrash :size="14" stroke-width="1.8" />
+          <span>Eliminar</span>
+        </div>
+      </div>
+    </Teleport>
+
   </AuthenticatedLayout>
 </template>
 
@@ -164,15 +180,49 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
-import { IconCrown, IconPlus } from '@tabler/icons-vue';
+import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
 const availableRoles = ref<Role[]>([]);
 
+const openRowMenuId = ref<string | null>(null);
+const rowRefs = ref<Record<string, HTMLElement>>({});
+
+const setRowRef = (id: string, el: any) => {
+  if (el) rowRefs.value[id] = el;
+};
+
+const toggleRowMenu = (id: string) => {
+  openRowMenuId.value = openRowMenuId.value === id ? null : id;
+};
+
+const getDropdownPosition = (id: string) => {
+  const el = rowRefs.value[id];
+  if (!el) return {};
+  const rect = el.getBoundingClientRect();
+  return {
+    position: 'fixed',
+    top: `${rect.bottom + 4}px`,
+    right: `${window.innerWidth - rect.right}px`,
+  };
+};
+
+const handleEditFromDropdown = () => {
+  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
+  openRowMenuId.value = null;
+  if (member) openEditModal(member);
+};
+
+const handleDeleteFromDropdown = () => {
+  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
+  openRowMenuId.value = null;
+  if (member) handleDelete(member.id, member.name);
+};
+
 // --- ADD MEMBER ---
 const isAddModalOpen = ref(false);
-const addForm = reactive({ name: '', email: '', roleIds: [] as number[] });
+const addForm = reactive({ name: '', email: '', roleIds: [] as string[] });
 const newMemberCredentials = ref<{ email: string; password: string } | null>(null);
 
 onMounted(async () => {
@@ -217,7 +267,7 @@ const isEditModalOpen = ref(false);
 const editForm = reactive({
   id: '',
   name: '',
-  roleIds: [] as number[],
+  roleIds: [] as string[],
   status: 'active'
 });
 
@@ -280,4 +330,85 @@ const handleDelete = async (userId: string, userName: string) => {
 .roles-cell { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 .owner-icon { color: var(--accent-amber); margin-right: 4px; }
 .modal-footer { display: flex; gap: var(--space-2); width: 100%; }
+
+/* ROW ACTIONS DROPDOWN */
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 49;
+}
+
+.row-actions {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dots-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.dots-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.row-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+  z-index: 50;
+  box-shadow: var(--shadow-lg);
+  min-width: 150px;
+  animation: dropdown-in 0.12s ease-out;
+}
+
+.row-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.row-dropdown .dropdown-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+.row-dropdown .dropdown-item.danger {
+  color: var(--color-danger);
+}
+.row-dropdown .dropdown-item.danger:hover {
+  background-color: var(--color-danger-bg);
+}
+.row-dropdown .dropdown-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: var(--space-1) 0;
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>

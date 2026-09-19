@@ -9,11 +9,11 @@ export class MemberService {
     return this.memberRepository.getMembersByCompany(companyId);
   }
 
-  async addMember(companyId: string, email: string, name: string, roleIds: number[]) {
+  async addMember(companyId: string, email: string, name: string, roleIds: string[]) {
     return this.memberRepository.addMember(companyId, email, name, roleIds);
   }
 
-  async updateMember(companyId: string, userId: string, data: { roleIds?: number[]; status?: string }) {
+  async updateMember(companyId: string, userId: string, data: { roleIds?: string[]; status?: string }) {
     return this.memberRepository.updateMember(companyId, userId, data);
   }
 
