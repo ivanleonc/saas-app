@@ -41,15 +41,15 @@ withDefaults(defineProps<{
 .ui-card-header {
   display: flex;
   flex-direction: column;
-  padding: 1.25rem 1.5rem;
-  gap: 0.25rem;
+  padding: var(--space-5) var(--space-6);
+  gap: var(--space-1);
 }
 
 .ui-card-content {
-  padding: 1.25rem 1.5rem;
+  padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .ui-card-header + .ui-card-content {
@@ -57,9 +57,9 @@ withDefaults(defineProps<{
 }
 
 .ui-card-footer {
-  padding: 0 1.5rem 1.25rem;
+  padding: 0 var(--space-6) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 </style>

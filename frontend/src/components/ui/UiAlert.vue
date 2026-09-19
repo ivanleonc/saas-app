@@ -22,23 +22,23 @@ withDefaults(defineProps<{
 .ui-alert {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  font-size: var(--text-base);
   font-weight: 500;
 }
 
 .ui-alert-error {
-  background-color: var(--danger-bg, #fef2f2);
-  color: var(--danger-text, #991b1b);
-  border: 1px solid var(--danger-border, #fecaca);
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border: 1px solid var(--color-danger-border);
 }
 
 .ui-alert-success {
-  background-color: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
 }
 
 .alert-icon {

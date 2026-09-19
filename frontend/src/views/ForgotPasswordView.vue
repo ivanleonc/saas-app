@@ -18,7 +18,7 @@ const handleSubmit = async () => {
   successMsg.value = '';
   
   try {
-    const response = await authService.forgotPassword(email.value);
+    await authService.forgotPassword(email.value);
     successMsg.value = 'Se han enviado las instrucciones a tu correo.';
     email.value = '';
   } catch (error: any) {
@@ -31,14 +31,14 @@ const handleSubmit = async () => {
 
 <template>
   <div class="auth-wrapper">
-    <form @submit.prevent="handleSubmit" style="width: 100%; max-width: 400px;">
+    <form @submit.prevent="handleSubmit" class="auth-form">
       <UiCard>
         <template #header>
           <h2 class="auth-title">Recuperar Contraseña</h2>
           <p class="auth-description">Ingresa tu correo y te enviaremos un enlace temporal.</p>
         </template>
 
-        <div class="form-content">
+        <div class="form-body">
           <UiAlert v-if="errorMsg" type="error">{{ errorMsg }}</UiAlert>
           <UiAlert v-if="successMsg" type="success">{{ successMsg }}</UiAlert>
 
@@ -73,11 +73,37 @@ const handleSubmit = async () => {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-app);
-  padding: 1rem;
+  padding: var(--space-4);
 }
-.auth-title { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main); }
-.auth-description { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
-.form-content { display: flex; flex-direction: column; gap: 1rem; }
-.auth-footer-links { text-align: center; font-size: 0.875rem; margin-top: 1rem; }
-.auth-footer-links a { color: var(--text-main); font-weight: 500; text-decoration: underline; }
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.auth-description {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-footer-links {
+  text-align: center;
+  font-size: var(--text-base);
+  margin-top: var(--space-4);
+}
+
+.auth-footer-links a {
+  color: var(--text-main);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 </style>

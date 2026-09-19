@@ -5,7 +5,7 @@
     class="ui-button"
     :class="[
       `variant-${variant}`,
-      { 'btn-sm': size === 'sm', 'btn-icon': icon }
+      { 'btn-sm': size === 'sm', 'btn-icon': icon, 'btn-auto': width === 'auto' }
     ]"
   >
     <span v-if="loading" class="spinner"></span>
@@ -21,6 +21,7 @@ interface Props {
   variant?: 'primary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md';
   icon?: boolean;
+  width?: 'full' | 'auto';
 }
 
 withDefaults(defineProps<Props>(), {
@@ -30,6 +31,7 @@ withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   icon: false,
+  width: 'full',
 });
 </script>
 
@@ -39,22 +41,26 @@ withDefaults(defineProps<Props>(), {
   align-items: center;
   justify-content: center;
   height: 2.25rem;
-  padding: 0 1rem;
+  padding: 0 var(--space-4);
   width: 100%;
   border-radius: var(--radius);
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  gap: 0.5rem;
+  gap: var(--space-2);
   border: 1px solid transparent;
   line-height: 1;
 }
 
+.btn-auto {
+  width: auto;
+}
+
 .btn-sm {
   height: 1.875rem;
-  padding: 0 0.75rem;
-  font-size: 0.75rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .btn-icon {

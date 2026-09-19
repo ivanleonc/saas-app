@@ -40,10 +40,10 @@ const trendClass = computed(() => {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .metric-card:hover {
@@ -54,12 +54,12 @@ const trendClass = computed(() => {
 .metric-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .metric-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -73,7 +73,7 @@ const trendClass = computed(() => {
 .icon-orange { background-color: var(--accent-orange-bg); color: var(--accent-orange); }
 
 .metric-title {
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -90,11 +90,11 @@ const trendClass = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 1.25rem;
+  font-size: var(--text-lg);
 }
 
 .metric-trend {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 

@@ -63,24 +63,23 @@
           </DashboardMetricCard>
         </div>
 
-        <!-- Quick Actions -->
         <div class="quick-actions">
           <h3 class="section-title">Accesos Rápidos</h3>
           <div class="actions-grid">
             <router-link to="/dashboard/members" class="action-card">
-              <IconUsers :size="20" />
+              <IconUsers :size="18" />
               <span>Gestionar Miembros</span>
             </router-link>
             <router-link to="/dashboard/roles" class="action-card" v-permission="'roles:read'">
-              <IconShieldLock :size="20" />
+              <IconShieldLock :size="18" />
               <span>Configurar Roles</span>
             </router-link>
             <router-link to="/dashboard/settings" class="action-card">
-              <IconSettings :size="20" />
+              <IconSettings :size="18" />
               <span>Ajustes Empresa</span>
             </router-link>
             <router-link to="/dashboard/profile" class="action-card">
-              <IconUserCircle :size="20" />
+              <IconUserCircle :size="18" />
               <span>Mi Perfil</span>
             </router-link>
           </div>
@@ -144,41 +143,21 @@ const activeCompanyRole = computed(() => {
 .dashboard-content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text-main);
-}
-
-.page-subtitle {
-  margin: 0.25rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.875rem;
+  gap: var(--space-8);
 }
 
 .loading-state {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
   color: var(--text-muted);
-  font-size: 0.875rem;
-  padding: 3rem 0;
+  font-size: var(--text-base);
+  padding: var(--space-10) 0;
 }
 
 .loading-spinner {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 2px solid var(--border);
   border-top-color: var(--text-main);
   border-radius: 50%;
@@ -190,33 +169,26 @@ const activeCompanyRole = computed(() => {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-}
-
-.section-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0 0 0.75rem;
+  gap: var(--space-4);
 }
 
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .action-card {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   transition: all 0.15s;
 }

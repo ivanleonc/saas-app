@@ -2,14 +2,16 @@
   <AuthenticatedLayout>
     <div class="change-password-container">
       <div class="page-header">
-        <h1 class="page-title">Cambiar Contraseña</h1>
-        <p class="page-subtitle">Actualiza tu contraseña de acceso.</p>
+        <div>
+          <h1 class="page-title">Cambiar Contrasena</h1>
+          <p class="page-subtitle">Actualiza tu contrasena de acceso.</p>
+        </div>
       </div>
 
       <form @submit.prevent="handleSubmit">
         <UiCard>
           <template #header>
-            <h3 class="card-title">Nueva Contraseña</h3>
+            <h3 class="card-title">Nueva Contrasena</h3>
           </template>
 
           <div class="form-body">
@@ -18,26 +20,26 @@
 
             <UiInput
               v-model="form.currentPassword"
-              label="Contraseña Actual"
+              label="Contrasena Actual"
               type="password"
               required
             />
             <UiInput
               v-model="form.newPassword"
-              label="Nueva Contraseña"
+              label="Nueva Contrasena"
               type="password"
               required
             />
             <UiInput
               v-model="form.confirmPassword"
-              label="Confirmar Nueva Contraseña"
+              label="Confirmar Nueva Contrasena"
               type="password"
               required
             />
           </div>
 
           <template #footer>
-            <UiButton type="submit" :loading="isLoading">Actualizar Contraseña</UiButton>
+            <UiButton type="submit" :loading="isLoading">Actualizar Contrasena</UiButton>
           </template>
         </UiCard>
       </form>
@@ -72,7 +74,7 @@ const form = reactive({
 
 const handleSubmit = async () => {
   if (form.newPassword !== form.confirmPassword) {
-    errorMsg.value = 'Las contraseñas no coinciden.';
+    errorMsg.value = 'Las contrasenas no coinciden.';
     return;
   }
 
@@ -82,13 +84,13 @@ const handleSubmit = async () => {
 
   try {
     await authService.changePassword(form.currentPassword, form.newPassword);
-    successMsg.value = 'Contraseña actualizada correctamente. Redirigiendo...';
+    successMsg.value = 'Contrasena actualizada correctamente. Redirigiendo...';
     form.currentPassword = '';
     form.newPassword = '';
     form.confirmPassword = '';
     setTimeout(() => router.push('/dashboard'), 2000);
   } catch (error: any) {
-    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contraseña';
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contrasena';
   } finally {
     isLoading.value = false;
   }
@@ -96,9 +98,12 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.change-password-container { display: flex; flex-direction: column; gap: 2rem; max-width: 500px; }
-.page-title { margin: 0; font-size: 1.875rem; font-weight: 600; color: var(--text-main); letter-spacing: -0.025em; }
-.page-subtitle { margin: 0.5rem 0 0; color: var(--text-muted); }
-.card-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: var(--text-main); }
-.form-body { display: flex; flex-direction: column; gap: 1rem; }
+.change-password-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 500px;
+}
+
+.form-section { display: flex; flex-direction: column; gap: var(--space-6); }
 </style>

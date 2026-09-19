@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { authService } from '@/services/auth.service';
@@ -22,13 +22,13 @@ const successMsg = ref('');
 
 onMounted(() => {
   if (!token.value || !email.value) {
-    errorMsg.value = 'Enlace de recuperación inválido o incompleto.';
+    errorMsg.value = 'Enlace de recuperacion invalido o incompleto.';
   }
 });
 
 const handleSubmit = async () => {
   if (password.value !== passwordConfirm.value) {
-    errorMsg.value = 'Las contraseñas no coinciden.';
+    errorMsg.value = 'Las contrasenas no coinciden.';
     return;
   }
 
@@ -37,10 +37,10 @@ const handleSubmit = async () => {
 
   try {
     await authService.resetPassword(email.value, token.value, password.value);
-    successMsg.value = 'Tu contraseña ha sido actualizada. Redirigiendo...';
+    successMsg.value = 'Tu contrasena ha sido actualizada. Redirigiendo...';
     setTimeout(() => router.push('/login'), 3000);
   } catch (error: any) {
-    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'El enlace caducó o es inválido.';
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'El enlace caduco o es invalido.';
   } finally {
     isLoading.value = false;
   }
@@ -49,27 +49,27 @@ const handleSubmit = async () => {
 
 <template>
   <div class="auth-wrapper">
-    <form @submit.prevent="handleSubmit" style="width: 100%; max-width: 400px;">
+    <form @submit.prevent="handleSubmit" class="auth-form">
       <UiCard>
         <template #header>
-          <h2 class="auth-title">Crear Nueva Contraseña</h2>
-          <p class="auth-description">Ingresa una contraseña segura para tu cuenta.</p>
+          <h2 class="auth-title">Crear Nueva Contrasena</h2>
+          <p class="auth-description">Ingresa una contrasena segura para tu cuenta.</p>
         </template>
 
-        <div class="form-content">
+        <div class="form-body">
           <UiAlert v-if="errorMsg" type="error">{{ errorMsg }}</UiAlert>
           <UiAlert v-if="successMsg" type="success">{{ successMsg }}</UiAlert>
 
           <template v-if="!successMsg && token && email">
             <UiInput
               v-model="password"
-              label="Nueva Contraseña"
+              label="Nueva Contrasena"
               type="password"
               required
             />
             <UiInput
               v-model="passwordConfirm"
-              label="Confirmar Contraseña"
+              label="Confirmar Contrasena"
               type="password"
               required
             />
@@ -78,7 +78,7 @@ const handleSubmit = async () => {
 
         <template #footer>
           <UiButton v-if="!successMsg && token && email" type="submit" :loading="isLoading">
-            Actualizar Contraseña
+            Actualizar Contrasena
           </UiButton>
 
           <div class="auth-footer-links">
@@ -91,10 +91,43 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
-.auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: var(--bg-app); padding: 1rem; }
-.auth-title { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main); }
-.auth-description { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
-.form-content { display: flex; flex-direction: column; gap: 1rem; }
-.auth-footer-links { text-align: center; font-size: 0.875rem; margin-top: 1rem; }
-.auth-footer-links a { color: var(--text-main); font-weight: 500; text-decoration: underline; }
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-app);
+  padding: var(--space-4);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.auth-description {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-footer-links {
+  text-align: center;
+  font-size: var(--text-base);
+  margin-top: var(--space-4);
+}
+
+.auth-footer-links a {
+  color: var(--text-main);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 </style>

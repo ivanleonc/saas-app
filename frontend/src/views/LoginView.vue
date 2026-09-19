@@ -27,15 +27,14 @@ const handleLogin = async () => {
 </script>
 <template>
   <div class="auth-wrapper">
-    <form @submit.prevent="handleLogin" style="width: 100%; max-width: 400px;">
+    <form @submit.prevent="handleLogin" class="auth-form">
       <UiCard>
-        
         <template #header>
           <h2 class="auth-title">Iniciar Sesión</h2>
           <p class="auth-description">Ingresa tus credenciales para acceder a tu cuenta.</p>
         </template>
 
-        <div class="form-content">
+        <div class="form-body">
           <UiAlert v-if="authStore.error">
             {{ authStore.error }}
           </UiAlert>
@@ -62,7 +61,7 @@ const handleLogin = async () => {
           </UiButton>
           
           <div class="auth-footer-links">
-            <p style="margin-bottom: 0.5rem;"><router-link to="/forgot-password">¿Olvidaste tu contraseña?</router-link></p>
+            <p><router-link to="/forgot-password">¿Olvidaste tu contraseña?</router-link></p>
             <p>¿No tienes una cuenta? <router-link to="/register">Regístrate</router-link></p>
           </div>
         </template>
@@ -79,11 +78,16 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-app);
-  padding: 1rem;
+  padding: var(--space-4);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
 }
 
 .auth-title {
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1;
@@ -92,22 +96,20 @@ const handleLogin = async () => {
 }
 
 .auth-description {
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   color: var(--text-muted);
   margin: 0;
 }
 
-.form-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .auth-footer-links {
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   color: var(--text-muted);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
+}
+
+.auth-footer-links p {
+  margin-bottom: var(--space-2);
 }
 
 .auth-footer-links a {
