@@ -13,6 +13,11 @@
         <span>Cargando métricas...</span>
       </div>
 
+      <div v-else-if="loadError" class="empty-state">
+        <span>No pudimos cargar las métricas.</span>
+        <UiButton width="auto" variant="outline" @click="loadData">Reintentar</UiButton>
+      </div>
+
       <template v-else>
         <div class="metrics-grid">
           <DashboardMetricCard 
@@ -66,7 +71,7 @@
         <div class="quick-actions">
           <h3 class="section-title">Accesos Rápidos</h3>
           <div class="actions-grid">
-            <router-link :to="companyPath('/members')" class="action-card">
+            <router-link :to="companyPath('/members')" class="action-card" v-permission="Permissions.USERS.READ">
               <IconUsers :size="18" />
               <span>Gestionar Miembros</span>
             </router-link>
@@ -78,11 +83,11 @@
               <IconShieldLock :size="18" />
               <span>Configurar Roles</span>
             </router-link>
-            <router-link :to="companyPath('/settings')" class="action-card">
+            <router-link :to="companyPath('/settings')" class="action-card" v-permission="Permissions.SETTINGS.READ">
               <IconSettings :size="18" />
               <span>Ajustes Empresa</span>
             </router-link>
-            <router-link :to="companyPath('/profile')" class="action-card">
+            <router-link :to="companyPath('/profile')" class="action-card" v-permission="Permissions.PROFILE.READ">
               <IconUserCircle :size="18" />
               <span>Mi Perfil</span>
             </router-link>
@@ -102,6 +107,7 @@ import { roleService } from '@/services/role.service';
 import { Permissions } from '@/constants/permissions';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import {
   IconUsers,
   IconShieldLock,
@@ -118,24 +124,29 @@ const { companyPath } = useCompanyPath();
 
 const isLoading = ref(true);
 const totalRoles = ref(0);
+const loadError = ref(false);
 
-onMounted(async () => {
-  if (authStore.activeTenantId) {
-    try {
-      await Promise.all([
-        memberStore.fetchMembers(),
-        roleService.getRoles(authStore.activeTenantId).then(r => totalRoles.value = r.length)
-      ]);
-    } catch (error) {
-      console.error('Error cargando métricas del dashboard', error);
-    } finally {
-      isLoading.value = false;
-    }
+const loadData = async () => {
+  if (!authStore.activeTenantId) return;
+  isLoading.value = true;
+  loadError.value = false;
+  try {
+    await Promise.all([
+      memberStore.fetchMembers(),
+      roleService.getRoles(authStore.activeTenantId).then(r => totalRoles.value = r.length)
+    ]);
+  } catch (error) {
+    console.error('Error cargando métricas del dashboard', error);
+    loadError.value = true;
+  } finally {
+    isLoading.value = false;
   }
-});
+};
+
+onMounted(loadData);
 
 const totalMembers = computed(() => memberStore.members.length);
-const activeMembers = computed(() => memberStore.members.filter(m => m.status === 'active').length);
+const activeMembers = computed(() => memberStore.members.filter(m => (m.status || 'active') === 'active').length);
 
 const activeCompany = computed(() =>
   authStore.user?.tenants?.find((t: any) => t.id === authStore.activeTenantId)

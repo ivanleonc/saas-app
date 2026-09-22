@@ -12,7 +12,7 @@
       </div>
 
       <div class="filters-bar">
-        <div class="filter-group">
+        <div class="filter-group filter-group-grow">
           <input
             v-model="searchQuery"
             type="text"
@@ -353,12 +353,6 @@ onMounted(() => branchStore.fetchBranches());
   gap: var(--space-8);
 }
 
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 .branch-avatar {
   width: 32px;
   height: 32px;
@@ -370,136 +364,4 @@ onMounted(() => branchStore.fetchBranches());
   justify-content: center;
   flex-shrink: 0;
 }
-
-.font-medium { font-weight: 600; }
-.text-muted { color: var(--text-muted); }
-
-.filters-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  min-width: 180px;
-}
-.filter-group:first-child {
-  flex: 1;
-}
-
-.filter-input {
-  height: 2rem;
-  width: 100%;
-  padding: 0 var(--space-3);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-app);
-  color: var(--text-main);
-  outline: none;
-}
-.filter-input:focus {
-  border-color: var(--text-main);
-  box-shadow: 0 0 0 1px var(--text-main);
-}
-.filter-input::placeholder {
-  color: var(--text-muted);
-}
-
-.clear-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 2rem;
-  padding: 0 var(--space-3);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-card);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.clear-btn:hover {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-16) var(--space-4);
-  color: var(--text-muted);
-  text-align: center;
-}
-.empty-state p { font-size: var(--text-lg); font-weight: 500; color: var(--text-main); margin: 0; }
-.empty-state span { font-size: var(--text-sm); }
-
-.skeleton-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-}
-.skeleton-row:last-child { border-bottom: none; }
-
-.skeleton {
-  border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-pulse 1.2s ease-in-out infinite;
-}
-.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
-.skeleton-text { height: 14px; width: 180px; }
-.skeleton-text.short { width: 120px; }
-.skeleton-badge { height: 20px; width: 70px; border-radius: var(--radius-full); margin-left: auto; }
-
-@keyframes skeleton-pulse {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
-
-/* ROW ACTIONS */
-.row-actions {
-  position: relative;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.dots-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: all 0.15s;
-}
-.dots-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-main);
-}
-
-.modal-footer { display: flex; gap: var(--space-2); width: 100%; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 </style>

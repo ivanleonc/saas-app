@@ -68,7 +68,7 @@
           <p class="role-description">{{ getRoleDescription(role.name) }}</p>
 
           <div class="role-card-body">
-            <div v-if="role.permissions.length === 0" class="empty-state">
+            <div v-if="role.permissions.length === 0" class="role-empty">
               <IconLock :size="24" />
               <span>Sin permisos asignados</span>
             </div>
@@ -531,7 +531,7 @@ const handleCreateSubmit = async () => {
   scrollbar-width: thin;
 }
 
-.empty-state {
+.role-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -707,8 +707,6 @@ const handleCreateSubmit = async () => {
 }
 .roles-empty p { font-size: var(--text-lg); font-weight: 500; color: var(--text-main); margin: 0; }
 .roles-empty span { font-size: var(--text-sm); }
-
-.modal-footer { display: flex; gap: var(--space-2); width: 100%; }
 
 @media (max-width: 768px) {
   .roles-grid {

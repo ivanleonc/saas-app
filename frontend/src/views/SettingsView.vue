@@ -192,5 +192,4 @@ const handleSubmit = async () => {
   font-weight: 600;
 }
 
-.modal-footer { display: flex; gap: var(--space-2); width: 100%; }
 </style>

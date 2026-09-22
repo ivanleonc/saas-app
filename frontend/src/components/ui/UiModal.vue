@@ -43,6 +43,8 @@ const close = () => {
 .modal-content {
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   animation: modal-in 0.2s ease-out;
 }
 
