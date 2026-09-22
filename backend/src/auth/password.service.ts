@@ -148,7 +148,9 @@ export class PasswordService {
     const newHash = await bcrypt.hash(tempPasswordPlain, SALT_ROUNDS);
     await this.checkPasswordHistory(targetUserId, newHash);
     await this.userRepository.updatePassword(targetUserId, newHash);
+    await this.userRepository.setMustChangePassword(targetUserId, true);
     await this.savePasswordHistory(targetUserId, newHash);
+    await this.refreshTokenRepository.revokeAllForUser(targetUserId);
 
     await this.auditLogService.log({
       userId: adminUserId,

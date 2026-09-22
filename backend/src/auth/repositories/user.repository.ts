@@ -41,6 +41,13 @@ export class UserRepository {
     );
   }
 
+  async setMustChangePassword(userId: string, value: boolean): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users SET must_change_password = $1 WHERE id = $2`,
+      [value, userId],
+    );
+  }
+
   async updateTemporaryPassword(userId: string, newPasswordHash: string): Promise<void> {
     await this.dataSource.query(
       `UPDATE users SET password_hash = $1, must_change_password = FALSE, password_changed_at = NOW() WHERE id = $2`,
