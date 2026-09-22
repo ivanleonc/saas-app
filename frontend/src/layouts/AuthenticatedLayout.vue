@@ -129,6 +129,10 @@
             <IconShieldLock :size="22" stroke-width="1.8" />
             <span class="nav-label">Roles</span>
           </router-link>
+          <router-link :to="companyPath('/audit')" class="nav-link" active-class="active" v-permission="Permissions.AUDIT.READ">
+            <IconClipboardList :size="22" stroke-width="1.8" />
+            <span class="nav-label">Auditoria</span>
+          </router-link>
           <router-link :to="companyPath('/settings')" class="nav-link" active-class="active">
             <IconSettings :size="22" stroke-width="1.8" />
             <span class="nav-label">Settings</span>
@@ -200,6 +204,7 @@ import {
   IconLayoutDashboard,
   IconUsers,
   IconShieldLock,
+  IconClipboardList,
   IconSettings,
   IconUserCircle,
   IconLogout,

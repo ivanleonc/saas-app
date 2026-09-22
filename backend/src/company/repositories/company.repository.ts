@@ -94,4 +94,12 @@ export class CompanyRepository {
     const result = await this.dataSource.query(query, values);
     return result[0];
   }
+
+  async findById(companyId: string) {
+    const result = await this.dataSource.query(
+      `SELECT id, name, tax_id, is_active FROM companies WHERE id = $1 AND deleted_at IS NULL`,
+      [companyId],
+    );
+    return result[0] || null;
+  }
 }

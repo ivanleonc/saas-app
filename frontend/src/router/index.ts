@@ -81,6 +81,15 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: '/companies/:companyId/audit',
+    name: 'Audit',
+    component: () => import('@/views/AuditView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: Permissions.AUDIT.READ,
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue'),
