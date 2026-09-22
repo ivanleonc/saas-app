@@ -140,12 +140,28 @@
                         </div>
                       </details>
                     </template>
+                    <template v-else-if="entry.hasOld && Array.isArray(entry.oldVal) && !entry.hasNew">
+                      <div class="array-summary">
+                        <span class="array-count removed">−{{ entry.oldVal.length }} eliminados</span>
+                      </div>
+                      <div v-for="(item, i) in entry.oldVal" :key="'old-arr-' + i" class="array-item removed">
+                        <span class="array-sign">−</span><span>{{ formatValue(item) }}</span>
+                      </div>
+                    </template>
+                    <template v-else-if="entry.hasNew && Array.isArray(entry.newVal) && !entry.hasOld">
+                      <div class="array-summary">
+                        <span class="array-count added">+{{ entry.newVal.length }} agregados</span>
+                      </div>
+                      <div v-for="(item, i) in entry.newVal" :key="'new-arr-' + i" class="array-item added">
+                        <span class="array-sign">+</span><span>{{ formatValue(item) }}</span>
+                      </div>
+                    </template>
                     <template v-else>
                       <div v-if="entry.hasOld" class="change-row old">
                         <span class="mini-badge old">Antes</span>
                         <span class="change-value old-value">{{ formatValue(entry.oldVal) }}</span>
                       </div>
-                      <div class="change-row new">
+                      <div v-if="entry.hasNew" class="change-row new">
                         <span class="mini-badge new">Después</span>
                         <span class="change-value new-value">{{ formatValue(entry.newVal) }}</span>
                       </div>
@@ -437,6 +453,7 @@ function getSubjectKindLabel(log: any): string {
 interface ChangeEntry {
   key: string;
   hasOld: boolean;
+  hasNew: boolean;
   oldVal: any;
   newVal: any;
 }
@@ -444,9 +461,11 @@ interface ChangeEntry {
 function getChangeEntries(log: any): ChangeEntry[] {
   const newVals = getChangedNewValues(log) || {};
   const oldVals = getChangedOldValues(log) || {};
-  return Object.keys(newVals).map((key) => ({
+  const keys = new Set([...Object.keys(oldVals), ...Object.keys(newVals)]);
+  return [...keys].map((key) => ({
     key,
     hasOld: key in oldVals,
+    hasNew: key in newVals,
     oldVal: oldVals[key],
     newVal: newVals[key],
   }));

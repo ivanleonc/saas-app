@@ -187,7 +187,8 @@ const handleSubmit = async () => {
   successMsg.value = '';
 
   try {
-    if (isTemporary.value) {
+    const wasTemporary = isTemporary.value;
+    if (wasTemporary) {
       await authService.changeTemporaryPassword(form.newPassword);
     } else {
       await authService.changePassword(form.currentPassword, form.newPassword);
@@ -197,11 +198,20 @@ const handleSubmit = async () => {
       authStore.user.must_change_password = false;
     }
 
-    successMsg.value = 'Contraseña actualizada correctamente. Redirigiendo...';
     form.currentPassword = '';
     form.newPassword = '';
     form.confirmPassword = '';
-    setTimeout(() => router.push(companyPath('/dashboard')), 1500);
+
+    if (wasTemporary) {
+      successMsg.value = 'Contraseña actualizada. Inicia sesión con tu nueva contraseña...';
+      setTimeout(async () => {
+        await authStore.logout();
+        router.push({ name: 'Login' });
+      }, 1500);
+    } else {
+      successMsg.value = 'Contraseña actualizada correctamente. Redirigiendo...';
+      setTimeout(() => router.push(companyPath('/dashboard')), 1500);
+    }
   } catch (error: any) {
     errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contraseña';
   } finally {
