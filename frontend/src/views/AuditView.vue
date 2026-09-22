@@ -117,23 +117,40 @@
                   {{ getChangesLabel(log) }}
                 </button>
                 <div v-if="expandedLogs.has(log.id)" class="changes-content">
-                  <template v-if="getChangedOldValues(log)">
-                    <div class="changes-label">Antes:</div>
-                    <div v-for="(value, key) in getChangedOldValues(log)" :key="'old-' + key" class="change-row old">
-                      <span class="change-key">{{ key }}</span>
-                      <span class="change-value old-value">{{ formatValue(value) }}</span>
-                    </div>
-                  </template>
-                  <div v-if="getChangedOldValues(log) && getChangedNewValues(log)" class="change-divider">
-                    <IconArrowDown :size="12" />
+                  <div v-for="entry in getChangeEntries(log)" :key="entry.key" class="change-entry">
+                    <div class="change-key">{{ entry.key }}</div>
+                    <template v-if="isArrayPair(entry.oldVal, entry.newVal)">
+                      <div class="array-summary">
+                        <span class="array-count added">+{{ arrayAdded(entry.oldVal, entry.newVal).length }} agregados</span>
+                        <span class="array-count removed">−{{ arrayRemoved(entry.oldVal, entry.newVal).length }} quitados</span>
+                        <span v-if="arrayUnchanged(entry.oldVal, entry.newVal).length" class="array-count same">
+                          {{ arrayUnchanged(entry.oldVal, entry.newVal).length }} sin cambios
+                        </span>
+                      </div>
+                      <div v-for="(item, i) in arrayRemoved(entry.oldVal, entry.newVal)" :key="'rm-' + i" class="array-item removed">
+                        <span class="array-sign">−</span><span>{{ formatValue(item) }}</span>
+                      </div>
+                      <div v-for="(item, i) in arrayAdded(entry.oldVal, entry.newVal)" :key="'add-' + i" class="array-item added">
+                        <span class="array-sign">+</span><span>{{ formatValue(item) }}</span>
+                      </div>
+                      <details v-if="arrayUnchanged(entry.oldVal, entry.newVal).length" class="array-unchanged">
+                        <summary>Ver sin cambios</summary>
+                        <div v-for="(item, i) in arrayUnchanged(entry.oldVal, entry.newVal)" :key="'same-' + i" class="array-item same">
+                          <span>{{ formatValue(item) }}</span>
+                        </div>
+                      </details>
+                    </template>
+                    <template v-else>
+                      <div v-if="entry.hasOld" class="change-row old">
+                        <span class="mini-badge old">Antes</span>
+                        <span class="change-value old-value">{{ formatValue(entry.oldVal) }}</span>
+                      </div>
+                      <div class="change-row new">
+                        <span class="mini-badge new">Después</span>
+                        <span class="change-value new-value">{{ formatValue(entry.newVal) }}</span>
+                      </div>
+                    </template>
                   </div>
-                  <template v-if="getChangedNewValues(log)">
-                    <div class="changes-label">Despues:</div>
-                    <div v-for="(value, key) in getChangedNewValues(log)" :key="'new-' + key" class="change-row new">
-                      <span class="change-key">{{ key }}</span>
-                      <span class="change-value new-value">{{ formatValue(value) }}</span>
-                    </div>
-                  </template>
                 </div>
               </div>
 
@@ -212,7 +229,6 @@ import {
   IconPencil,
   IconTrash,
   IconEye,
-  IconArrowDown,
   IconDownload,
   IconAlertCircle,
   IconArrowRight,
@@ -416,6 +432,47 @@ function getSubjectKindLabel(log: any): string {
     Settings: 'Configuración',
   };
   return kinds[log.entity_type] || 'Registro';
+}
+
+interface ChangeEntry {
+  key: string;
+  hasOld: boolean;
+  oldVal: any;
+  newVal: any;
+}
+
+function getChangeEntries(log: any): ChangeEntry[] {
+  const newVals = getChangedNewValues(log) || {};
+  const oldVals = getChangedOldValues(log) || {};
+  return Object.keys(newVals).map((key) => ({
+    key,
+    hasOld: key in oldVals,
+    oldVal: oldVals[key],
+    newVal: newVals[key],
+  }));
+}
+
+function isArrayPair(oldVal: any, newVal: any): boolean {
+  return Array.isArray(oldVal) && Array.isArray(newVal);
+}
+
+function normVal(v: any): string {
+  return JSON.stringify(v);
+}
+
+function arrayAdded(oldVal: any[], newVal: any[]): any[] {
+  const oldSet = new Set(oldVal.map(normVal));
+  return newVal.filter((v) => !oldSet.has(normVal(v)));
+}
+
+function arrayRemoved(oldVal: any[], newVal: any[]): any[] {
+  const newSet = new Set(newVal.map(normVal));
+  return oldVal.filter((v) => !newSet.has(normVal(v)));
+}
+
+function arrayUnchanged(oldVal: any[], newVal: any[]): any[] {
+  const newSet = new Set(newVal.map(normVal));
+  return oldVal.filter((v) => newSet.has(normVal(v)));
 }
 
 function getChangesLabel(log: any): string {
@@ -803,12 +860,57 @@ onMounted(() => {
 .change-row.old .change-value { color: var(--color-danger); text-decoration: line-through; opacity: 0.7; }
 .change-row.new .change-value { color: #22c55e; }
 
-.change-divider {
+.change-entry {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.change-entry:last-child { border-bottom: none; }
+.change-entry > .change-key { margin-bottom: 2px; }
+
+.mini-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: var(--space-2);
+  flex-shrink: 0;
+}
+.mini-badge.old { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.mini-badge.new { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+
+.array-summary {
   display: flex;
-  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: 11px;
+  margin: 2px 0 6px;
+}
+.array-count.added { color: #22c55e; font-weight: 700; }
+.array-count.removed { color: #ef4444; font-weight: 700; }
+.array-count.same { color: var(--text-muted); }
+
+.array-item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--text-xs);
   padding: 2px 0;
+}
+.array-item.removed { color: #ef4444; }
+.array-item.removed span:last-child { text-decoration: line-through; opacity: 0.8; }
+.array-item.added { color: #22c55e; }
+.array-item.same { color: var(--text-muted); }
+.array-sign { font-weight: 700; width: 12px; flex-shrink: 0; }
+
+.array-unchanged { margin-top: 4px; }
+.array-unchanged summary {
+  cursor: pointer;
+  font-size: 11px;
   color: var(--text-muted);
 }
+.array-unchanged summary:hover { color: var(--text-main); }
 
 .change-key {
   font-weight: 500;
