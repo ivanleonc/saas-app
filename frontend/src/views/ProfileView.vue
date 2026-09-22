@@ -8,6 +8,15 @@
         </div>
       </div>
 
+      <!-- Profile Hero -->
+      <div class="profile-hero">
+        <div class="profile-avatar">{{ getInitials(profileName) }}</div>
+        <div class="profile-identity">
+          <h2 class="profile-hero-name">{{ profileName || '---' }}</h2>
+          <span class="profile-hero-email">{{ profileEmail }}</span>
+        </div>
+      </div>
+
       <!-- Profile Info Card -->
       <UiCard>
         <template #header>
@@ -56,7 +65,6 @@
 
             <div class="form-body">
               <UiAlert v-if="errorMessage" type="error">{{ errorMessage }}</UiAlert>
-              <UiAlert v-if="successMessage" type="success">{{ successMessage }}</UiAlert>
 
               <UiInput v-model="form.name" label="Nombre Completo" required />
               <UiInput v-model="form.email" label="Correo Electronico" type="email" required disabled />
@@ -87,7 +95,6 @@
 
             <div class="form-body">
               <UiAlert v-if="passwordError" type="error">{{ passwordError }}</UiAlert>
-              <UiAlert v-if="passwordSuccess" type="success">{{ passwordSuccess }}</UiAlert>
 
               <UiInput
                 v-model="passwordForm.currentPassword"
@@ -172,14 +179,15 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import { IconEdit } from '@tabler/icons-vue';
+import { useToast } from '@/composables/useToast';
 
 const authStore = useAuthStore();
+const toast = useToast();
 
 // --- PROFILE ---
 const isProfileModalOpen = ref(false);
 const isSavingProfile = ref(false);
 const errorMessage = ref<string | null>(null);
-const successMessage = ref('');
 
 const form = reactive({
   name: '',
@@ -193,24 +201,27 @@ onMounted(async () => {
   await authStore.fetchProfile();
 });
 
+const getInitials = (name?: string): string => {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase();
+};
+
 const openProfileModal = () => {
   form.name = authStore.user?.name || '';
   form.email = authStore.user?.email || '';
   errorMessage.value = null;
-  successMessage.value = '';
   isProfileModalOpen.value = true;
 };
 
 const handleProfileSubmit = async () => {
   isSavingProfile.value = true;
   errorMessage.value = null;
-  successMessage.value = '';
 
   try {
     await userService.updateProfile({ name: form.name, email: form.email });
     authStore.updateProfileData({ name: form.name, email: form.email });
-    successMessage.value = 'Perfil actualizado correctamente.';
-    setTimeout(() => { isProfileModalOpen.value = false; }, 1000);
+    isProfileModalOpen.value = false;
+    toast.success('Perfil actualizado correctamente');
   } catch (error: any) {
     errorMessage.value = error.response?.data?.message || 'Error al actualizar perfil';
   } finally {
@@ -221,7 +232,6 @@ const handleProfileSubmit = async () => {
 // --- PASSWORD ---
 const isPasswordModalOpen = ref(false);
 const passwordError = ref('');
-const passwordSuccess = ref('');
 const isChangingPassword = ref(false);
 
 const passwordForm = reactive({
@@ -235,7 +245,6 @@ const openPasswordModal = () => {
   passwordForm.newPassword = '';
   passwordForm.confirmPassword = '';
   passwordError.value = '';
-  passwordSuccess.value = '';
   isPasswordModalOpen.value = true;
 };
 
@@ -297,12 +306,11 @@ const handlePasswordChange = async () => {
 
   isChangingPassword.value = true;
   passwordError.value = '';
-  passwordSuccess.value = '';
 
   try {
     await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
-    passwordSuccess.value = 'Contrasena actualizada correctamente.';
-    setTimeout(() => { isPasswordModalOpen.value = false; }, 1000);
+    isPasswordModalOpen.value = false;
+    toast.success('Contraseña actualizada correctamente');
   } catch (error: any) {
     passwordError.value = error.response?.data?.message || error.response?.data?.error || 'Error al cambiar contrasena';
   } finally {
@@ -323,6 +331,56 @@ const handlePasswordChange = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
+
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-hero-name {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-hero-email {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .info-grid {

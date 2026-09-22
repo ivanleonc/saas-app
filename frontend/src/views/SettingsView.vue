@@ -6,7 +6,7 @@
           <h1 class="page-title">Configuracion de la Empresa</h1>
           <p class="page-subtitle">Administra la informacion general y fiscal de tu organizacion.</p>
         </div>
-        <UiButton @click="openEditModal" width="auto">
+        <UiButton v-permission="Permissions.COMPANY.UPDATE" @click="openEditModal" width="auto">
           <IconEdit :size="16" /> Editar Empresa
         </UiButton>
       </div>
@@ -39,8 +39,7 @@
             
             <div class="form-body">
               <UiAlert v-if="companyStore.error" type="error">{{ companyStore.error }}</UiAlert>
-              <UiAlert v-if="successMessage" type="success">{{ successMessage }}</UiAlert>
-              
+
               <UiInput 
                 v-model="form.name" 
                 label="Nombre de la Empresa" 
@@ -83,12 +82,14 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import { IconEdit } from '@tabler/icons-vue';
+import { useToast } from '@/composables/useToast';
+import { Permissions } from '@/constants/permissions';
 
 const companyStore = useCompanyStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const isEditModalOpen = ref(false);
-const successMessage = ref('');
 const form = reactive({
   name: '',
   tax_id: ''
@@ -129,19 +130,16 @@ onMounted(() => {
 
 watch(() => authStore.activeTenantId, () => {
   loadCompanyData();
-  successMessage.value = '';
   companyStore.error = null;
 });
 
 const openEditModal = () => {
   loadCompanyData();
-  successMessage.value = '';
   companyStore.error = null;
   isEditModalOpen.value = true;
 };
 
 const handleSubmit = async () => {
-  successMessage.value = '';
   if (!authStore.activeTenantId) return;
 
   try {
@@ -149,9 +147,9 @@ const handleSubmit = async () => {
       name: form.name,
       tax_id: form.tax_id
     });
-    
-    successMessage.value = 'Los datos se actualizaron correctamente.';
-    setTimeout(() => { isEditModalOpen.value = false; }, 1000);
+
+    isEditModalOpen.value = false;
+    toast.success('Empresa actualizada correctamente');
   } catch (error) {
     // Error manejado por UiAlert
   }

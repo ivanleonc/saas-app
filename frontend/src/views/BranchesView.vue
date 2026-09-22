@@ -11,9 +11,26 @@
         </UiButton>
       </div>
 
+      <div class="filters-bar">
+        <div class="filter-group">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="filter-input"
+            placeholder="Buscar por nombre o ciudad..."
+          />
+        </div>
+        <div class="filter-group">
+          <UiSelect v-model="filterStatus" :options="statusFilterOptions" />
+        </div>
+        <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters">
+          <IconX :size="14" /> Limpiar
+        </button>
+      </div>
+
       <div class="table-section">
         <div class="table-wrapper">
-          <table class="ui-table">
+          <table v-if="!isInitialLoading && filteredBranches.length > 0" class="ui-table">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -24,13 +41,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="branchStore.isLoading">
-                <td colspan="5" class="empty-state">Cargando sedes...</td>
-              </tr>
-              <tr v-else-if="branchStore.branches.length === 0">
-                <td colspan="5" class="empty-state">No hay sedes configuradas.</td>
-              </tr>
-              <tr v-for="branch in branchStore.branches" :key="branch.id">
+              <tr v-for="branch in filteredBranches" :key="branch.id">
                 <td>
                   <div class="user-cell">
                     <div class="branch-avatar">
@@ -57,15 +68,59 @@
                   </span>
                 </td>
                 <td>
-                  <div class="row-actions" v-permission="Permissions.BRANCHES.UPDATE" :ref="el => setRowRef(branch.id, el)">
-                    <button class="dots-btn" @click.stop="toggleRowMenu(branch.id)">
-                      <IconDotsVertical :size="16" stroke-width="1.8" />
-                    </button>
+                  <div class="row-actions" v-permission="Permissions.BRANCHES.UPDATE">
+                    <UiDropdown align="end" label="Acciones de la sede">
+                      <template #trigger="{ toggle }">
+                        <button class="dots-btn" @click.stop="toggle" aria-haspopup="menu" :aria-label="`Acciones para ${branch.name}`">
+                          <IconDotsVertical :size="16" stroke-width="1.8" />
+                        </button>
+                      </template>
+                      <template #default>
+                        <UiDropdownItem @click="openEditModal(branch)">
+                          <IconPencil :size="14" stroke-width="1.8" />
+                          <span>Editar</span>
+                        </UiDropdownItem>
+                        <UiDropdownItem @click="handleToggleActive(branch)">
+                          <IconSwitchHorizontal :size="14" stroke-width="1.8" />
+                          <span>{{ branch.is_active ? 'Desactivar' : 'Activar' }}</span>
+                        </UiDropdownItem>
+                        <div class="ui-dropdown-divider" role="separator"></div>
+                        <UiDropdownItem danger @click="openDeleteModal(branch)" v-permission="Permissions.BRANCHES.DELETE">
+                          <IconTrash :size="14" stroke-width="1.8" />
+                          <span>Eliminar</span>
+                        </UiDropdownItem>
+                      </template>
+                    </UiDropdown>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+
+          <div v-else-if="isInitialLoading" class="skeleton-list" aria-label="Cargando sedes">
+            <div v-for="n in 5" :key="n" class="skeleton-row">
+              <div class="skeleton skeleton-avatar"></div>
+              <div class="skeleton skeleton-text"></div>
+              <div class="skeleton skeleton-text short"></div>
+              <div class="skeleton skeleton-badge"></div>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <IconBuildingCommunity :size="48" stroke-width="1.5" />
+            <p>{{ branchStore.branches.length === 0 ? 'No hay sedes todavía' : 'Sin resultados' }}</p>
+            <span>{{ branchStore.branches.length === 0
+              ? 'Agrega tu primera ubicación para empezar.'
+              : 'Prueba con otra búsqueda o limpia los filtros.' }}</span>
+            <UiButton
+              v-if="branchStore.branches.length === 0"
+              v-permission="Permissions.BRANCHES.CREATE"
+              width="auto"
+              @click="openCreateModal"
+            >
+              <IconPlus :size="16" /> Nueva Sede
+            </UiButton>
+          </div>
         </div>
       </div>
 
@@ -113,26 +168,6 @@
       </UiModal>
     </div>
 
-    <!-- Teleported row dropdown -->
-    <Teleport to="body">
-      <div v-if="openRowMenuId" class="dropdown-overlay" @click="openRowMenuId = null"></div>
-      <div v-if="openRowMenuId && rowRefs[openRowMenuId]" class="row-dropdown" :style="getDropdownPosition(openRowMenuId)">
-        <div class="dropdown-item" @click="handleEditFromDropdown">
-          <IconPencil :size="14" stroke-width="1.8" />
-          <span>Editar</span>
-        </div>
-        <div class="dropdown-item" @click="handleToggleActiveFromDropdown">
-          <IconSwitchHorizontal :size="14" stroke-width="1.8" />
-          <span>{{ activeDropdownBranch?.is_active ? 'Desactivar' : 'Activar' }}</span>
-        </div>
-        <div class="dropdown-divider"></div>
-        <div class="dropdown-item danger" @click="handleDeleteFromDropdown" v-permission="Permissions.BRANCHES.DELETE">
-          <IconTrash :size="14" stroke-width="1.8" />
-          <span>Eliminar</span>
-        </div>
-      </div>
-    </Teleport>
-
     <!-- Delete Confirmation Modal -->
     <UiModal v-model="isDeleteModalOpen">
       <UiCard>
@@ -155,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useBranchStore } from '@/stores/branch.store';
 import { Permissions } from '@/constants/permissions';
 import type { Branch } from '@/types/branch';
@@ -166,6 +201,10 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiInput from '@/components/ui/UiInput.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+import UiDropdown from '@/components/ui/UiDropdown.vue';
+import UiDropdownItem from '@/components/ui/UiDropdownItem.vue';
+import { useToast } from '@/composables/useToast';
 import {
   IconPlus,
   IconDotsVertical,
@@ -173,57 +212,56 @@ import {
   IconTrash,
   IconBuildingCommunity,
   IconSwitchHorizontal,
+  IconX,
 } from '@tabler/icons-vue';
 
 const branchStore = useBranchStore();
+const toast = useToast();
 
-// --- ROW DROPDOWN ---
-const openRowMenuId = ref<string | null>(null);
-const rowRefs = ref<Record<string, HTMLElement>>({});
+// --- FILTERS ---
+const searchQuery = ref('');
+const filterStatus = ref('');
 
-const setRowRef = (id: string, el: any) => {
-  if (el) rowRefs.value[id] = el;
+const statusFilterOptions = [
+  { label: 'Todos los estados', value: '' },
+  { label: 'Activa', value: 'active' },
+  { label: 'Inactiva', value: 'inactive' },
+];
+
+const hasActiveFilters = computed(() => searchQuery.value || filterStatus.value);
+
+const filteredBranches = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return branchStore.branches.filter((b) => {
+    const status = b.is_active ? 'active' : 'inactive';
+    if (filterStatus.value && status !== filterStatus.value) return false;
+    if (query) {
+      const haystack = `${b.name || ''} ${b.city || ''} ${b.state || ''} ${b.country || ''}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  });
+});
+
+const clearFilters = () => {
+  searchQuery.value = '';
+  filterStatus.value = '';
 };
 
-const toggleRowMenu = (branchId: string) => {
-  openRowMenuId.value = openRowMenuId.value === branchId ? null : branchId;
-};
+const isInitialLoading = computed(() => branchStore.isLoading && branchStore.branches.length === 0);
 
-const getDropdownPosition = (branchId: string) => {
-  const el = rowRefs.value[branchId];
-  if (!el) return {};
-  const rect = el.getBoundingClientRect();
-  return {
-    position: 'fixed' as const,
-    top: `${rect.bottom + 4}px`,
-    left: `${rect.right - 150}px`,
-    zIndex: 50,
-  };
-};
-
-const activeDropdownBranch = ref<Branch | null>(null);
-
-const handleEditFromDropdown = () => {
-  const branch = branchStore.branches.find(b => b.id === openRowMenuId.value);
-  if (branch) openEditModal(branch);
-  openRowMenuId.value = null;
-};
-
-const handleToggleActiveFromDropdown = async () => {
-  const branch = branchStore.branches.find(b => b.id === openRowMenuId.value);
-  if (branch) {
+const handleToggleActive = async (branch: Branch) => {
+  try {
     await branchStore.updateBranch(branch.id, { is_active: !branch.is_active });
+    toast.success(branch.is_active ? 'Sede desactivada' : 'Sede activada');
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || err.response?.data?.error || 'Error al cambiar el estado');
   }
-  openRowMenuId.value = null;
 };
 
-const handleDeleteFromDropdown = () => {
-  const branch = branchStore.branches.find(b => b.id === openRowMenuId.value);
-  if (branch) {
-    deletingBranch.value = branch;
-    isDeleteModalOpen.value = true;
-  }
-  openRowMenuId.value = null;
+const openDeleteModal = (branch: Branch) => {
+  deletingBranch.value = branch;
+  isDeleteModalOpen.value = true;
 };
 
 // --- CREATE / EDIT ---
@@ -269,6 +307,7 @@ const handleSubmit = async () => {
   try {
     if (editingBranch.value) {
       await branchStore.updateBranch(editingBranch.value.id, { ...form });
+      toast.success('Sede actualizada correctamente');
     } else {
       await branchStore.createBranch({
         name: form.name,
@@ -280,6 +319,7 @@ const handleSubmit = async () => {
         phone: form.phone || undefined,
         email: form.email || undefined,
       });
+      toast.success('Sede creada correctamente');
     }
     isFormModalOpen.value = false;
   } catch (err: any) {
@@ -297,9 +337,9 @@ const confirmDelete = async () => {
     await branchStore.deleteBranch(deletingBranch.value.id);
     isDeleteModalOpen.value = false;
     deletingBranch.value = null;
+    toast.success('Sede eliminada correctamente');
   } catch (err: any) {
-    formError.value = err.response?.data?.message || 'Error al eliminar la sede';
-    isDeleteModalOpen.value = false;
+    toast.error(err.response?.data?.message || err.response?.data?.error || 'Error al eliminar la sede');
   }
 };
 
@@ -334,16 +374,108 @@ onMounted(() => branchStore.fetchBranches());
 .font-medium { font-weight: 600; }
 .text-muted { color: var(--text-muted); }
 
-/* ROW ACTIONS DROPDOWN */
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 49;
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
+.filter-group {
+  display: flex;
+  align-items: center;
+  min-width: 180px;
+}
+.filter-group:first-child {
+  flex: 1;
+}
+
+.filter-input {
+  height: 2rem;
+  width: 100%;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+  color: var(--text-main);
+  outline: none;
+}
+.filter-input:focus {
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 1px var(--text-main);
+}
+.filter-input::placeholder {
+  color: var(--text-muted);
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clear-btn:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-4);
+  color: var(--text-muted);
+  text-align: center;
+}
+.empty-state p { font-size: var(--text-lg); font-weight: 500; color: var(--text-main); margin: 0; }
+.empty-state span { font-size: var(--text-sm); }
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.skeleton-row:last-child { border-bottom: none; }
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-text { height: 14px; width: 180px; }
+.skeleton-text.short { width: 120px; }
+.skeleton-badge { height: 20px; width: 70px; border-radius: var(--radius-full); margin-left: auto; }
+
+@keyframes skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ROW ACTIONS */
 .row-actions {
   position: relative;
   display: flex;
@@ -366,50 +498,6 @@ onMounted(() => branchStore.fetchBranches());
 .dots-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-main);
-}
-
-.row-dropdown {
-  position: fixed;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-1);
-  z-index: 50;
-  box-shadow: var(--shadow-lg);
-  min-width: 150px;
-  animation: dropdown-in 0.12s ease-out;
-}
-
-.row-dropdown .dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.row-dropdown .dropdown-item:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-main);
-}
-.row-dropdown .dropdown-item.danger {
-  color: var(--color-danger);
-}
-.row-dropdown .dropdown-item.danger:hover {
-  background-color: var(--color-danger-bg);
-}
-.row-dropdown .dropdown-divider {
-  height: 1px;
-  background-color: var(--border);
-  margin: var(--space-1) 0;
-}
-
-@keyframes dropdown-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-footer { display: flex; gap: var(--space-2); width: 100%; }

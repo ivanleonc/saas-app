@@ -6,13 +6,28 @@
           <h1 class="page-title">Roles y Permisos</h1>
           <p class="page-subtitle">Consulta y crea niveles de acceso para tu organizacion.</p>
         </div>
-        <UiButton @click="openCreateModal" width="auto">
+        <UiButton v-permission="Permissions.ROLES.CREATE" @click="openCreateModal" width="auto">
           Crear Nuevo Rol
         </UiButton>
       </div>
 
-      <div v-if="isLoading" class="loading-state">Cargando roles...</div>
-      
+      <div v-if="isLoading" class="skeleton-grid" aria-label="Cargando roles">
+        <div v-for="n in 3" :key="n" class="skeleton-card">
+          <div class="skeleton skeleton-card-title"></div>
+          <div class="skeleton skeleton-card-line"></div>
+          <div class="skeleton skeleton-card-line short"></div>
+        </div>
+      </div>
+
+      <div v-else-if="roles.length === 0" class="empty-state">
+        <IconShield :size="48" stroke-width="1.5" />
+        <p>No hay roles todavía</p>
+        <span>Crea tu primer rol personalizado para organizar los accesos.</span>
+        <UiButton v-permission="Permissions.ROLES.CREATE" width="auto" @click="openCreateModal">
+          Crear Nuevo Rol
+        </UiButton>
+      </div>
+
       <div v-else class="roles-grid">
         <UiCard v-for="role in roles" :key="role.id" class="role-card">
           <div class="role-card-header">
@@ -29,9 +44,24 @@
               </div>
             </div>
             <div class="role-actions" v-if="!role.is_system">
-              <button class="role-menu-btn" :ref="el => setMenuBtnRef(role.id, el)" @click.stop="toggleRoleMenu(role.id, $event)">
-                <IconDotsVertical :size="16" />
-              </button>
+              <UiDropdown align="end" label="Acciones del rol">
+                <template #trigger="{ toggle }">
+                  <button class="role-menu-btn" @click.stop="toggle" aria-haspopup="menu" :aria-label="`Acciones para ${role.name}`">
+                    <IconDotsVertical :size="16" />
+                  </button>
+                </template>
+                <template #default>
+                  <UiDropdownItem @click="openEditModal(role)" v-permission="Permissions.ROLES.UPDATE">
+                    <IconPencil :size="14" />
+                    <span>Editar Rol</span>
+                  </UiDropdownItem>
+                  <div class="ui-dropdown-divider" role="separator"></div>
+                  <UiDropdownItem danger @click="openDeleteModal(role)" v-permission="Permissions.ROLES.DELETE">
+                    <IconTrash :size="14" />
+                    <span>Eliminar Rol</span>
+                  </UiDropdownItem>
+                </template>
+              </UiDropdown>
             </div>
           </div>
 
@@ -94,6 +124,7 @@
           </template>
           
           <div class="form-body">
+            <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
             <UiInput v-model="form.name" label="Nombre del Rol" placeholder="Ej: Gestor de Finanzas" required />
             <UiInput v-model="form.description" label="Descripcion (Opcional)" placeholder="Que hace este rol?" />
             
@@ -119,22 +150,6 @@
 
   </AuthenticatedLayout>
 
-  <!-- Role dropdown menu -->
-  <Teleport to="body">
-    <div v-if="openRoleMenuId" class="dropdown-overlay" @click="openRoleMenuId = null" />
-    <div v-if="openRoleMenuId" class="role-dropdown" :style="getRoleMenuPosition()">
-      <div class="dropdown-item" @click="openEditModal(roles.find(r => r.id === openRoleMenuId)!)">
-        <IconPencil :size="14" />
-        <span>Editar Rol</span>
-      </div>
-      <div class="dropdown-divider" />
-      <div class="dropdown-item danger" @click="openDeleteModal(roles.find(r => r.id === openRoleMenuId)!)">
-        <IconTrash :size="14" />
-        <span>Eliminar Rol</span>
-      </div>
-    </div>
-  </Teleport>
-
   <!-- Edit Modal -->
   <UiModal v-model="isEditModalOpen" size="large">
     <form @submit.prevent="handleEditSubmit">
@@ -143,6 +158,7 @@
           <h3 class="card-title">Editar Rol</h3>
         </template>
         <div class="form-body">
+          <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
           <UiInput v-model="editForm.name" label="Nombre del Rol" required />
           <UiDualListbox
             v-model="editForm.permissionIds"
@@ -172,6 +188,7 @@
           Estas seguro de eliminar el rol <strong>{{ deleteTarget?.name }}</strong>?
           Esta accion no se puede deshacer.
         </p>
+        <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
       </template>
       <template #footer>
         <div class="modal-footer">
@@ -194,7 +211,12 @@ import UiCard from '@/components/ui/UiCard.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiInput from '@/components/ui/UiInput.vue';
+import UiAlert from '@/components/ui/UiAlert.vue';
 import UiDualListbox from '@/components/ui/UiDualListbox.vue';
+import UiDropdown from '@/components/ui/UiDropdown.vue';
+import UiDropdownItem from '@/components/ui/UiDropdownItem.vue';
+import { useToast } from '@/composables/useToast';
+import { Permissions } from '@/constants/permissions';
 import {
   IconShield,
   IconUserCog,
@@ -207,16 +229,15 @@ import {
 } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
+const toast = useToast();
 const roles = ref<Role[]>([]);
 const allPermissions = ref<Permission[]>([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
+const errorMsg = ref('');
 
 const isModalOpen = ref(false);
 const form = reactive({ name: '', description: '', permissionIds: [] as string[] });
-
-const openRoleMenuId = ref<string | null>(null);
-const menuBtnRefs = ref<Record<string, HTMLElement>>({});
 
 const isEditModalOpen = ref(false);
 const editForm = reactive({ id: '', name: '', permissionIds: [] as string[] });
@@ -298,54 +319,34 @@ function isModuleExpanded(roleId: string, module: string): boolean {
   return expandedModules.value[roleId]?.has(module) ?? true;
 }
 
-function toggleRoleMenu(id: string, event: MouseEvent) {
-  if (openRoleMenuId.value === id) {
-    openRoleMenuId.value = null;
-    return;
-  }
-  openRoleMenuId.value = id;
-}
-
-function setMenuBtnRef(id: string, el: any) {
-  if (el) menuBtnRefs.value[id] = el;
-}
-
-function getRoleMenuPosition() {
-  const el = menuBtnRefs.value[openRoleMenuId.value!];
-  if (!el) return {};
-  const rect = el.getBoundingClientRect();
-  return {
-    position: 'fixed' as const,
-    top: `${rect.bottom + 4}px`,
-    right: `${window.innerWidth - rect.right}px`,
-  };
-}
-
 function openEditModal(role: Role) {
   editForm.id = role.id;
   editForm.name = role.name;
   editForm.permissionIds = role.permissions.map((p) => p.id);
-  openRoleMenuId.value = null;
+  errorMsg.value = '';
   isEditModalOpen.value = true;
 }
 
 function openDeleteModal(role: Role) {
   deleteTarget.value = { id: role.id, name: role.name };
-  openRoleMenuId.value = null;
+  errorMsg.value = '';
   isDeleteModalOpen.value = true;
 }
 
 async function handleEditSubmit() {
   isSaving.value = true;
+  errorMsg.value = '';
   try {
     await roleService.updateRole(editForm.id, {
       name: editForm.name,
       permissionIds: editForm.permissionIds,
     });
     isEditModalOpen.value = false;
+    toast.success('Rol actualizado correctamente');
     await fetchData();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error actualizando rol:', error);
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al actualizar el rol';
   } finally {
     isSaving.value = false;
   }
@@ -354,13 +355,16 @@ async function handleEditSubmit() {
 async function handleDeleteSubmit() {
   if (!deleteTarget.value) return;
   isSaving.value = true;
+  errorMsg.value = '';
   try {
     await roleService.deleteRole(deleteTarget.value.id);
     isDeleteModalOpen.value = false;
     deleteTarget.value = null;
+    toast.success('Rol eliminado correctamente');
     await fetchData();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error eliminando rol:', error);
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al eliminar el rol';
   } finally {
     isSaving.value = false;
   }
@@ -386,21 +390,25 @@ onMounted(fetchData);
 
 const openCreateModal = () => {
   form.name = ''; form.description = ''; form.permissionIds = [];
+  errorMsg.value = '';
   isModalOpen.value = true;
 };
 
 const handleCreateSubmit = async () => {
   if (!authStore.activeTenantId) return;
   isSaving.value = true;
+  errorMsg.value = '';
   try {
     await roleService.createRole({
       name: form.name,
       permissionIds: form.permissionIds
     });
     isModalOpen.value = false;
+    toast.success('Rol creado correctamente');
     await fetchData();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creando rol', error);
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'Error al crear el rol';
   } finally {
     isSaving.value = false;
   }
@@ -654,11 +662,51 @@ const handleCreateSubmit = async () => {
   color: var(--text-muted);
 }
 
-.loading-state {
-  color: var(--text-muted);
-  font-size: var(--text-base);
-  padding: var(--space-8) 0;
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-6);
 }
+
+.skeleton-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+.skeleton-card-title { height: 22px; width: 45%; }
+.skeleton-card-line { height: 14px; width: 100%; }
+.skeleton-card-line.short { width: 65%; }
+
+@keyframes skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.roles-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-4);
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.roles-empty p { font-size: var(--text-lg); font-weight: 500; color: var(--text-main); margin: 0; }
+.roles-empty span { font-size: var(--text-sm); }
 
 .modal-footer { display: flex; gap: var(--space-2); width: 100%; }
 
@@ -666,58 +714,9 @@ const handleCreateSubmit = async () => {
   .roles-grid {
     grid-template-columns: 1fr;
   }
+  .skeleton-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* Dropdown */
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 49;
-}
-
-.role-dropdown {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-1);
-  z-index: 50;
-  box-shadow: var(--shadow-lg);
-  min-width: 160px;
-  animation: dropdown-in 0.12s ease-out;
-}
-
-.role-dropdown .dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.role-dropdown .dropdown-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-main);
-}
-.role-dropdown .dropdown-item.danger {
-  color: var(--color-danger);
-}
-.role-dropdown .dropdown-item.danger:hover {
-  background: var(--color-danger-bg);
-}
-.role-dropdown .dropdown-divider {
-  height: 1px;
-  background: var(--border);
-  margin: var(--space-1) 0;
-}
-
-@keyframes dropdown-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
 </style>

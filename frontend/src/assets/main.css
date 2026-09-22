@@ -287,6 +287,8 @@ body {
 }
 
 .badge-status.active { background-color: var(--color-success-bg); color: var(--color-success); }
+.badge-status.inactive { background-color: var(--color-danger-bg); color: var(--color-danger); }
+.badge-status.pending { background-color: var(--accent-amber-bg, var(--bg-hover)); color: var(--accent-amber, var(--text-muted)); }
 
 /* Icon circles */
 .icon-circle {

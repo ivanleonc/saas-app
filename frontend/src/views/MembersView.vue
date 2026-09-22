@@ -11,9 +11,29 @@
         </UiButton>
       </div>
 
+      <div class="filters-bar">
+        <div class="filter-group">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="filter-input"
+            placeholder="Buscar por nombre o email..."
+          />
+        </div>
+        <div class="filter-group">
+          <UiSelect v-model="filterRole" :options="roleFilterOptions" />
+        </div>
+        <div class="filter-group">
+          <UiSelect v-model="filterStatus" :options="statusFilterOptions" />
+        </div>
+        <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters">
+          <IconX :size="14" /> Limpiar
+        </button>
+      </div>
+
       <div class="table-section">
         <div class="table-wrapper">
-          <table class="ui-table">
+          <table v-if="!isInitialLoading && filteredMembers.length > 0" class="ui-table">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -24,10 +44,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="member in memberStore.members" :key="member.id">
+              <tr v-for="member in filteredMembers" :key="member.id">
                 <td>
                   <div class="user-cell">
-                    <div class="user-avatar">{{ member.name.substring(0, 2).toUpperCase() }}</div>
+                    <div class="user-avatar">{{ getInitials(member.name) }}</div>
                     <span class="font-medium">{{ member.name }}</span>
                   </div>
                 </td>
@@ -43,19 +63,67 @@
                 </td>
                 <td>
                   <span class="badge-status" :class="member.status || 'active'">
-                    {{ member.status || 'Active' }}
+                    {{ statusLabel(member.status) }}
                   </span>
                 </td>
                 <td>
-                  <div class="row-actions" v-permission="Permissions.USERS.UPDATE" :ref="el => setRowRef(member.id, el)">
-                    <button class="dots-btn" @click.stop="toggleRowMenu(member.id)">
-                      <IconDotsVertical :size="16" stroke-width="1.8" />
-                    </button>
+                  <div class="row-actions" v-permission="Permissions.USERS.UPDATE">
+                    <UiDropdown align="end" label="Acciones del miembro">
+                      <template #trigger="{ toggle }">
+                        <button class="dots-btn" @click.stop="toggle" aria-haspopup="menu" :aria-label="`Acciones para ${member.name}`">
+                          <IconDotsVertical :size="16" stroke-width="1.8" />
+                        </button>
+                      </template>
+                      <template #default>
+                        <UiDropdownItem @click="openEditModal(member)">
+                          <IconPencil :size="14" stroke-width="1.8" />
+                          <span>Editar</span>
+                        </UiDropdownItem>
+                        <UiDropdownItem @click="openResetPasswordModal(member)">
+                          <IconKey :size="14" stroke-width="1.8" />
+                          <span>Resetear Contraseña</span>
+                        </UiDropdownItem>
+                        <UiDropdownItem @click="openResetPasswordEmailModal(member)">
+                          <IconMail :size="14" stroke-width="1.8" />
+                          <span>Resetear y enviar al correo</span>
+                        </UiDropdownItem>
+                        <div class="ui-dropdown-divider" role="separator"></div>
+                        <UiDropdownItem danger @click="handleDelete(member.id, member.name)" v-permission="Permissions.USERS.DELETE">
+                          <IconTrash :size="14" stroke-width="1.8" />
+                          <span>Eliminar</span>
+                        </UiDropdownItem>
+                      </template>
+                    </UiDropdown>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+
+          <div v-else-if="isInitialLoading" class="skeleton-list" aria-label="Cargando miembros">
+            <div v-for="n in 5" :key="n" class="skeleton-row">
+              <div class="skeleton skeleton-avatar"></div>
+              <div class="skeleton skeleton-text"></div>
+              <div class="skeleton skeleton-text short"></div>
+              <div class="skeleton skeleton-badge"></div>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <IconUsers :size="48" stroke-width="1.5" />
+            <p>{{ memberStore.members.length === 0 ? 'No hay miembros todavía' : 'Sin resultados' }}</p>
+            <span>{{ memberStore.members.length === 0
+              ? 'Invita a tu primera persona al equipo para empezar.'
+              : 'Prueba con otra búsqueda o limpia los filtros.' }}</span>
+            <UiButton
+              v-if="memberStore.members.length === 0"
+              v-permission="Permissions.USERS.CREATE"
+              width="auto"
+              @click="openAddModal"
+            >
+              <IconPlus :size="16" /> Nuevo Miembro
+            </UiButton>
+          </div>
         </div>
       </div>
 
@@ -71,6 +139,7 @@
               <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
               <div v-if="newMemberCredentials" class="credentials-box">
                 <p class="credentials-title">Miembro Agregado!</p>
+                <p class="credentials-warning">Copia esta contraseña ahora: no podrás volver a verla.</p>
                 <p><strong>Usuario:</strong> {{ newMemberCredentials.email }}</p>
                 <p class="password-row">
                   <strong>Clave:</strong>
@@ -117,6 +186,7 @@
             </template>
             
             <div class="form-body">
+              <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
               <UiSelect 
                 v-model="editForm.status" 
                 label="Estado de la Cuenta" 
@@ -149,36 +219,12 @@
 
     </div>
 
-    <!-- Teleported row dropdown -->
-    <Teleport to="body">
-      <div v-if="openRowMenuId" class="dropdown-overlay" @click="openRowMenuId = null"></div>
-      <div v-if="openRowMenuId && rowRefs[openRowMenuId]" class="row-dropdown" :style="getDropdownPosition(openRowMenuId)">
-        <div class="dropdown-item" @click="handleEditFromDropdown">
-          <IconPencil :size="14" stroke-width="1.8" />
-          <span>Editar</span>
-        </div>
-        <div class="dropdown-item" @click="handleResetPasswordFromDropdown">
-          <IconKey :size="14" stroke-width="1.8" />
-          <span>Resetear Contraseña</span>
-        </div>
-        <div class="dropdown-item" @click="handleResetPasswordEmailFromDropdown">
-          <IconMail :size="14" stroke-width="1.8" />
-          <span>Resetear y enviar al correo</span>
-        </div>
-        <div class="dropdown-divider"></div>
-        <div class="dropdown-item danger" @click="handleDeleteFromDropdown" v-permission="Permissions.USERS.DELETE">
-          <IconTrash :size="14" stroke-width="1.8" />
-          <span>Eliminar</span>
-        </div>
-      </div>
-    </Teleport>
-
     <!-- Delete Confirmation Modal -->
     <UiModal v-model="isDeleteModalOpen">
       <UiCard>
         <template #header>
           <h3 class="card-title">Eliminar Miembro</h3>
-          <p class="card-description">¿Estás seguro de que deseas eliminar permanentemente a <strong>{{ deleteTarget?.name }}</strong> de la empresa?</p>
+          <p class="card-description">¿Deseas remover a <strong>{{ deleteTarget?.name }}</strong> del equipo? Su cuenta se conserva, solo perderá el acceso a esta empresa.</p>
         </template>
         <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
         <template #footer>
@@ -293,10 +339,14 @@ import UiAlert from '@/components/ui/UiAlert.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
 import UiDualListbox from '@/components/ui/UiDualListbox.vue';
-import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash, IconKey, IconMail, IconCopy } from '@tabler/icons-vue';
+import UiDropdown from '@/components/ui/UiDropdown.vue';
+import UiDropdownItem from '@/components/ui/UiDropdownItem.vue';
+import { useToast } from '@/composables/useToast';
+import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash, IconKey, IconMail, IconCopy, IconUsers, IconX } from '@tabler/icons-vue';
 
 const authStore = useAuthStore();
 const memberStore = useMemberStore();
+const toast = useToast();
 const availableRoles = ref<Role[]>([]);
 
 const roleItems = computed(() =>
@@ -319,53 +369,57 @@ const copyToClipboard = async (text: string) => {
     document.execCommand('copy');
     document.body.removeChild(textarea);
   }
+  toast.success('Contraseña copiada al portapapeles');
 };
 
-const openRowMenuId = ref<string | null>(null);
-const rowRefs = ref<Record<string, HTMLElement>>({});
+const searchQuery = ref('');
+const filterRole = ref('');
+const filterStatus = ref('');
 
-const setRowRef = (id: string, el: any) => {
-  if (el) rowRefs.value[id] = el;
+const isInitialLoading = computed(() => memberStore.isLoading && memberStore.members.length === 0);
+
+const hasActiveFilters = computed(() => searchQuery.value || filterRole.value || filterStatus.value);
+
+const roleFilterOptions = computed(() => [
+  { label: 'Todos los roles', value: '' },
+  ...availableRoles.value.map((r) => ({ label: r.name, value: r.name })),
+]);
+
+const statusFilterOptions = computed(() => [
+  { label: 'Todos los estados', value: '' },
+  { label: 'Activo', value: 'active' },
+  { label: 'Inactivo', value: 'inactive' },
+  { label: 'Pendiente', value: 'pending' },
+]);
+
+const filteredMembers = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return memberStore.members.filter((m: any) => {
+    if (filterRole.value && !(m.roles || []).includes(filterRole.value)) return false;
+    if (filterStatus.value && (m.status || 'active') !== filterStatus.value) return false;
+    if (query && !`${m.name || ''} ${m.email || ''}`.toLowerCase().includes(query)) return false;
+    return true;
+  });
+});
+
+const clearFilters = () => {
+  searchQuery.value = '';
+  filterRole.value = '';
+  filterStatus.value = '';
 };
 
-const toggleRowMenu = (id: string) => {
-  openRowMenuId.value = openRowMenuId.value === id ? null : id;
+const getInitials = (name?: string): string => {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase();
 };
 
-const getDropdownPosition = (id: string) => {
-  const el = rowRefs.value[id];
-  if (!el) return {};
-  const rect = el.getBoundingClientRect();
-  return {
-    position: 'fixed',
-    top: `${rect.bottom + 4}px`,
-    right: `${window.innerWidth - rect.right}px`,
-  };
+const statusLabel = (status?: string): string => {
+  if (status === 'inactive') return 'Inactivo';
+  if (status === 'pending') return 'Pendiente';
+  return 'Activo';
 };
 
-const handleEditFromDropdown = () => {
-  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
-  openRowMenuId.value = null;
-  if (member) openEditModal(member);
-};
-
-const handleDeleteFromDropdown = () => {
-  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
-  openRowMenuId.value = null;
-  if (member) handleDelete(member.id, member.name);
-};
-
-const handleResetPasswordFromDropdown = () => {
-  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
-  openRowMenuId.value = null;
-  if (member) openResetPasswordModal(member);
-};
-
-const handleResetPasswordEmailFromDropdown = () => {
-  const member = memberStore.members.find((m: any) => m.id === openRowMenuId.value);
-  openRowMenuId.value = null;
-  if (member) openResetPasswordEmailModal(member);
-};
+const isSelf = (memberId: string): boolean => authStore.user?.id === memberId;
 
 // --- ADD MEMBER ---
 const isAddModalOpen = ref(false);
@@ -386,6 +440,7 @@ const openAddModal = () => {
   addForm.email = '';
   addForm.roleIds = [];
   newMemberCredentials.value = null;
+  memberStore.error = null;
   isAddModalOpen.value = true;
 };
 
@@ -424,10 +479,14 @@ const statusOptions = [
 ];
 
 const openEditModal = (member: any) => {
+  if (isSelf(member.id)) {
+    toast.error('No puedes modificar tu propio acceso. Pide a otro administrador que lo haga.');
+    return;
+  }
   editForm.id = member.id;
   editForm.name = member.name;
   editForm.status = member.status || 'active';
-  
+
   if (member.roles && member.roles.length > 0) {
     editForm.roleIds = availableRoles.value
       .filter(role => member.roles.includes(role.name))
@@ -435,7 +494,8 @@ const openEditModal = (member: any) => {
   } else {
     editForm.roleIds = [];
   }
-  
+
+  memberStore.error = null;
   isEditModalOpen.value = true;
 };
 
@@ -446,6 +506,7 @@ const handleEditSubmit = async () => {
       status: editForm.status
     });
     isEditModalOpen.value = false;
+    toast.success('Miembro actualizado correctamente');
   } catch (error) {
     console.error('Error al editar miembro:', error);
   }
@@ -456,8 +517,12 @@ const isDeleteModalOpen = ref(false);
 const deleteTarget = ref<{ id: string; name: string } | null>(null);
 
 const handleDelete = async (userId: string, userName: string) => {
+  if (isSelf(userId)) {
+    toast.error('No puedes eliminarte a ti mismo del equipo.');
+    return;
+  }
   deleteTarget.value = { id: userId, name: userName };
-  openRowMenuId.value = null;
+  memberStore.error = null;
   isDeleteModalOpen.value = true;
 };
 
@@ -467,6 +532,7 @@ const confirmDelete = async () => {
     await memberStore.removeMember(deleteTarget.value.id);
     isDeleteModalOpen.value = false;
     deleteTarget.value = null;
+    toast.success('Miembro removido del equipo');
   } catch (error) {
     console.error('Error al eliminar:', error);
   }
@@ -481,6 +547,7 @@ const resetResult = ref<{ temporary_password: string } | null>(null);
 const openResetPasswordModal = (member: any) => {
   resetTarget.value = { id: member.id, name: member.name, email: member.email };
   resetResult.value = null;
+  memberStore.error = null;
   isResetModalOpen.value = true;
 };
 
@@ -505,6 +572,7 @@ const resetEmailResult = ref<{ email: string } | null>(null);
 const openResetPasswordEmailModal = (member: any) => {
   resetEmailTarget.value = { id: member.id, name: member.name, email: member.email };
   resetEmailResult.value = null;
+  memberStore.error = null;
   isResetEmailModalOpen.value = true;
 };
 
@@ -559,16 +627,114 @@ const confirmResetPasswordEmail = async () => {
   color: var(--text-main);
 }
 
-/* ROW ACTIONS DROPDOWN */
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 49;
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
+.filter-group {
+  display: flex;
+  align-items: center;
+  min-width: 180px;
+}
+.filter-group:first-child {
+  flex: 1;
+}
+
+.filter-input {
+  height: 2rem;
+  width: 100%;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+  color: var(--text-main);
+  outline: none;
+}
+.filter-input:focus {
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 1px var(--text-main);
+}
+.filter-input::placeholder {
+  color: var(--text-muted);
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clear-btn:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.credentials-warning {
+  font-size: var(--text-sm);
+  color: var(--accent-amber, var(--text-muted));
+  margin-bottom: var(--space-2);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-4);
+  color: var(--text-muted);
+  text-align: center;
+}
+.empty-state p { font-size: var(--text-lg); font-weight: 500; color: var(--text-main); margin: 0; }
+.empty-state span { font-size: var(--text-sm); }
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.skeleton-row:last-child { border-bottom: none; }
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-text { height: 14px; width: 180px; }
+.skeleton-text.short { width: 120px; }
+.skeleton-badge { height: 20px; width: 70px; border-radius: var(--radius-full); margin-left: auto; }
+
+@keyframes skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ROW ACTIONS */
 .row-actions {
   position: relative;
   display: flex;
@@ -593,50 +759,4 @@ const confirmResetPasswordEmail = async () => {
   color: var(--text-main);
 }
 
-.row-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-1);
-  z-index: 50;
-  box-shadow: var(--shadow-lg);
-  min-width: 150px;
-  animation: dropdown-in 0.12s ease-out;
-}
-
-.row-dropdown .dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.row-dropdown .dropdown-item:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-main);
-}
-.row-dropdown .dropdown-item.danger {
-  color: var(--color-danger);
-}
-.row-dropdown .dropdown-item.danger:hover {
-  background-color: var(--color-danger-bg);
-}
-.row-dropdown .dropdown-divider {
-  height: 1px;
-  background-color: var(--border);
-  margin: var(--space-1) 0;
-}
-
-@keyframes dropdown-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 </style>
