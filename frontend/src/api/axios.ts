@@ -30,12 +30,17 @@ apiClient.interceptors.request.use(
     }
 
     try {
-      const storageData = localStorage.getItem('saas_auth_storage');
-      if (storageData) {
-        const parsed = JSON.parse(storageData);
-        const tenantId = parsed.activeTenantId ?? parsed.state?.activeTenantId;
-        if (tenantId && config.headers) {
-          config.headers['x-company-id'] = String(tenantId);
+      const explicitTenant = localStorage.getItem('saas_active_tenant');
+      if (explicitTenant && config.headers) {
+        config.headers['x-company-id'] = explicitTenant;
+      } else {
+        const storageData = localStorage.getItem('saas_auth_storage');
+        if (storageData) {
+          const parsed = JSON.parse(storageData);
+          const tenantId = parsed.activeTenantId ?? parsed.state?.activeTenantId;
+          if (tenantId && config.headers) {
+            config.headers['x-company-id'] = String(tenantId);
+          }
         }
       }
     } catch {}

@@ -28,7 +28,7 @@
               v-for="tenant in filteredTenants"
               :key="tenant.id"
               class="dropdown-item"
-              :class="{ active: authStore.activeTenantId === tenant.id }"
+              :class="{ active: authStore.activeTenantId === tenant.id, disabled: isSwitchingOrg }"
               @click="handleOrgChange(tenant.id)"
             >
               <span>{{ tenant.name }}</span>
@@ -327,14 +327,31 @@ const setTheme = (dark: boolean) => {
   applyTheme(dark);
 };
 
+const isSwitchingOrg = ref(false);
+
 const handleOrgChange = async (tenantId: string) => {
-  authStore.setActiveTenant(tenantId);
-  isOrgDropdownOpen.value = false;
-  orgSearchQuery.value = '';
-  // Refrescar claims (roles/permisos son por empresa y viven en el JWT)
-  await authStore.refreshTokens();
-  await authStore.fetchProfile();
-  router.push(`/companies/${tenantId}/dashboard`);
+  if (isSwitchingOrg.value) return;
+  if (tenantId === authStore.activeTenantId) {
+    isOrgDropdownOpen.value = false;
+    return;
+  }
+  isSwitchingOrg.value = true;
+  try {
+    authStore.setActiveTenant(tenantId);
+    isOrgDropdownOpen.value = false;
+    orgSearchQuery.value = '';
+    // Refrescar claims (roles/permisos son por empresa y viven en el JWT)
+    await authStore.refreshTokens();
+    await authStore.fetchProfile();
+    await router.push(`/companies/${tenantId}/dashboard`).catch(() => {});
+    // Reconciliar: si la navegación fue abortada/superada, la URL manda al recargar
+    const landed = router.currentRoute.value.params.companyId;
+    if (landed !== tenantId) {
+      await router.push(`/companies/${tenantId}/dashboard`).catch(() => {});
+    }
+  } finally {
+    isSwitchingOrg.value = false;
+  }
 };
 
 const openCreateModal = () => {
@@ -616,6 +633,10 @@ button.search-box:hover {
 .dropdown-item.active {
   color: var(--text-main);
   background-color: var(--bg-hover);
+}
+.dropdown-item.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 .dropdown-item.danger {
   color: var(--color-danger);

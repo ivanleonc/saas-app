@@ -116,6 +116,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore();
+  authStore.healActiveTenant();
   const isAuthenticated = authStore.isAuthenticated;
   const companyId = to.params.companyId as string | undefined;
 
@@ -134,11 +135,20 @@ router.beforeEach((to) => {
   // Sync activeTenantId with URL param
   if (companyId && isAuthenticated) {
     const validTenant = authStore.user?.tenants?.some((t) => t.id === companyId);
+    if (import.meta.env.DEV) {
+      console.log('[tenant] guard', {
+        path: to.path,
+        companyId,
+        activeTenantId: authStore.activeTenantId,
+        validTenant,
+        tenants: authStore.user?.tenants?.map((t: any) => t.id),
+      });
+    }
     if (validTenant && authStore.activeTenantId !== companyId) {
       authStore.setActiveTenant(companyId);
     } else if (!validTenant) {
-      const fallbackId = authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
-      if (fallbackId) {
+      const fallbackId = authStore.user?.tenants?.[0]?.id || authStore.activeTenantId;
+      if (fallbackId && fallbackId !== companyId) {
         return { path: `/companies/${fallbackId}/dashboard` };
       }
     }

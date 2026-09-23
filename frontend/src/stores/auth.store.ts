@@ -31,7 +31,24 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const setActiveTenant = (tenantId: string) => {
+    if (import.meta.env.DEV) {
+      console.log('[tenant] setActiveTenant', { from: activeTenantId.value, to: tenantId });
+    }
     activeTenantId.value = tenantId;
+    try {
+      localStorage.setItem('saas_active_tenant', tenantId);
+    } catch {}
+  };
+
+  const healActiveTenant = (): void => {
+    if (activeTenantId.value) return;
+    try {
+      const stored = localStorage.getItem('saas_active_tenant');
+      if (import.meta.env.DEV) {
+        console.log('[tenant] healActiveTenant', { stored });
+      }
+      if (stored) activeTenantId.value = stored;
+    } catch {}
   };
 
   const hasPermission = (permission: string): boolean => {
@@ -151,6 +168,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshTokens,
     fetchProfile,
     setActiveTenant,
+    healActiveTenant,
     updateProfileData,
     hasPermission,
     hasRole,

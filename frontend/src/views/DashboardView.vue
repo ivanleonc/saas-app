@@ -133,9 +133,13 @@ const { companyPath } = useCompanyPath();
 const isLoading = ref(true);
 const totalRoles = ref(0);
 const loadError = ref(false);
+let lastLoadAt = 0;
 
 const loadData = async () => {
   if (!authStore.activeTenantId) return;
+  const now = Date.now();
+  if (now - lastLoadAt < 3000) return;
+  lastLoadAt = now;
   isLoading.value = true;
   loadError.value = false;
   try {
