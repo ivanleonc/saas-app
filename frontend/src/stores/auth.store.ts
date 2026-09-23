@@ -119,10 +119,20 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('saas_active_tenant');
   };
 
-  const updateProfileData = (updatedUserData: { name: string; email: string }) => {
+  const updateProfileData = (updatedUserData: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    avatar_url?: string | null;
+    position?: string | null;
+    document_type?: string | null;
+    document_number?: string | null;
+    timezone?: string | null;
+    locale?: string | null;
+    pending_email?: string | null;
+  }) => {
     if (user.value) {
-      user.value.name = updatedUserData.name;
-      user.value.email = updatedUserData.email;
+      Object.assign(user.value, updatedUserData);
     }
   };
 

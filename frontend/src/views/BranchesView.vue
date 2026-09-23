@@ -39,7 +39,13 @@
               <div class="branch-avatar">
                 <IconBuildingCommunity :size="16" stroke-width="1.8" />
               </div>
-              <span class="font-medium truncate" :title="row.name">{{ row.name }}</span>
+              <div class="user-cell-text">
+                <span class="font-medium truncate" :title="row.name">
+                  {{ row.name }}
+                  <span v-if="row.code" class="text-muted">· {{ row.code }}</span>
+                </span>
+                <span v-if="row.is_main" class="branch-main-tag">Principal</span>
+              </div>
             </div>
           </template>
           <template #cell-location="{ row }">
@@ -49,10 +55,15 @@
             <span v-else class="text-muted">Sin ubicación</span>
           </template>
           <template #cell-contact="{ row }">
-            <span v-if="row.phone || row.email">
-              {{ row.phone || row.email }}
-            </span>
-            <span v-else class="text-muted">Sin contacto</span>
+            <div class="user-cell-text">
+              <span v-if="row.phone || row.email">
+                {{ row.phone || row.email }}
+              </span>
+              <span v-else class="text-muted">Sin contacto</span>
+              <span v-if="row.manager_name" class="user-cell-sub truncate" :title="row.manager_name">
+                Resp: {{ row.manager_name }}
+              </span>
+            </div>
           </template>
           <template #cell-status="{ row }">
             <span class="badge-status" :class="row.is_active ? 'active' : 'inactive'">
@@ -114,7 +125,10 @@
             <div class="form-body">
               <UiAlert v-if="formError" type="error">{{ formError }}</UiAlert>
 
-              <UiInput v-model="form.name" label="Nombre de la Sede" required />
+              <div class="form-row">
+                <UiInput v-model="form.name" label="Nombre de la Sede" required />
+                <UiInput v-model="form.code" label="Código (Opcional)" placeholder="BOG-01" />
+              </div>
               <UiInput v-model="form.address" label="Dirección" />
               <div class="form-row">
                 <UiInput v-model="form.city" label="Ciudad" />
@@ -128,6 +142,16 @@
                 <UiInput v-model="form.phone" label="Teléfono" />
                 <UiInput v-model="form.email" label="Email" type="email" />
               </div>
+              <div class="form-row">
+                <UiSelect v-model="form.manager_user_id" label="Responsable" :options="managerOptions" />
+                <UiInput v-model="form.timezone" label="Zona Horaria" placeholder="America/Bogota" />
+              </div>
+              <UiSelect
+                v-if="editingBranch"
+                v-model="form.is_main_flag"
+                label="Sede principal"
+                :options="mainOptions"
+              />
             </div>
 
             <template #footer>
@@ -169,6 +193,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useBranchStore } from '@/stores/branch.store';
+import { useMemberStore } from '@/stores/member.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { Permissions } from '@/constants/permissions';
 import type { Branch } from '@/types/branch';
 
@@ -196,6 +222,8 @@ import {
 } from '@tabler/icons-vue';
 
 const branchStore = useBranchStore();
+const memberStore = useMemberStore();
+const authStore = useAuthStore();
 const toast = useToast();
 
 // --- FILTERS ---
@@ -266,7 +294,24 @@ const form = reactive({
   postal_code: '',
   phone: '',
   email: '',
+  code: '',
+  manager_user_id: '',
+  timezone: '',
+  is_main_flag: 'no',
 });
+
+const mainOptions = [
+  { label: 'No', value: 'no' },
+  { label: 'Sí, es la sede principal', value: 'yes' },
+];
+
+const managerOptions = computed(() => [
+  { label: 'Sin responsable', value: '' },
+  ...memberStore.members.map((m: any) => ({
+    label: `${m.name} (${m.email})`,
+    value: m.id,
+  })),
+]);
 
 const formSnapshot = ref('');
 
@@ -276,10 +321,16 @@ const snapshotForm = () => {
 
 const isFormDirty = computed(() => JSON.stringify({ ...form }) !== formSnapshot.value);
 
-const openCreateModal = () => {
-  editingBranch.value = null;
+const resetForm = () => {
   form.name = ''; form.address = ''; form.city = ''; form.state = '';
   form.country = ''; form.postal_code = ''; form.phone = ''; form.email = '';
+  form.code = ''; form.manager_user_id = ''; form.timezone = '';
+  form.is_main_flag = 'no';
+};
+
+const openCreateModal = () => {
+  editingBranch.value = null;
+  resetForm();
   formError.value = '';
   snapshotForm();
   isFormModalOpen.value = true;
@@ -295,16 +346,36 @@ const openEditModal = (branch: Branch) => {
   form.postal_code = branch.postal_code || '';
   form.phone = branch.phone || '';
   form.email = branch.email || '';
+  form.code = branch.code || '';
+  form.manager_user_id = branch.manager_user_id || '';
+  form.timezone = branch.timezone || '';
+  form.is_main_flag = branch.is_main ? 'yes' : 'no';
   formError.value = '';
   snapshotForm();
   isFormModalOpen.value = true;
 };
 
+const emptyToUndefined = (value: string): string | undefined =>
+  value.trim() === '' ? undefined : value.trim();
+
 const handleSubmit = async () => {
   formError.value = '';
   try {
     if (editingBranch.value) {
-      await branchStore.updateBranch(editingBranch.value.id, { ...form });
+      await branchStore.updateBranch(editingBranch.value.id, {
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        country: form.country,
+        postal_code: form.postal_code,
+        phone: form.phone,
+        email: form.email,
+        code: emptyToUndefined(form.code),
+        manager_user_id: emptyToUndefined(form.manager_user_id),
+        timezone: emptyToUndefined(form.timezone),
+        is_main: form.is_main_flag === 'yes',
+      });
       toast.success('Sede actualizada correctamente');
     } else {
       await branchStore.createBranch({
@@ -316,6 +387,9 @@ const handleSubmit = async () => {
         postal_code: form.postal_code || undefined,
         phone: form.phone || undefined,
         email: form.email || undefined,
+        code: emptyToUndefined(form.code),
+        manager_user_id: emptyToUndefined(form.manager_user_id),
+        timezone: emptyToUndefined(form.timezone),
       });
       toast.success('Sede creada correctamente');
     }
@@ -341,7 +415,12 @@ const confirmDelete = async () => {
   }
 };
 
-onMounted(() => branchStore.fetchBranches());
+onMounted(() => {
+  branchStore.fetchBranches();
+  if (authStore.activeTenantId && memberStore.members.length === 0) {
+    memberStore.fetchMembers().catch(() => {});
+  }
+});
 </script>
 
 <style scoped>
@@ -361,5 +440,13 @@ onMounted(() => branchStore.fetchBranches());
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.branch-main-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-amber, #eab308);
 }
 </style>

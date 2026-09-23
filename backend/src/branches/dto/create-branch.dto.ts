@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsEmail, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEmail, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateBranchDto {
   @ApiProperty({ example: 'Sede Principal', description: 'Nombre de la sede' })
@@ -49,4 +49,21 @@ export class CreateBranchDto {
   @IsEmail()
   @MaxLength(255)
   email?: string;
+
+  @ApiPropertyOptional({ example: 'BOG-01', description: 'Código corto de la sede' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  code?: string;
+
+  @ApiPropertyOptional({ example: '6f1e2d3c-4b5a-4e4e-8f8f-0a1b2c3d4e5f', description: 'UUID del responsable' })
+  @IsOptional()
+  @IsUUID()
+  manager_user_id?: string;
+
+  @ApiPropertyOptional({ example: 'America/Bogota', description: 'Zona horaria' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  timezone?: string;
 }

@@ -63,8 +63,11 @@
         </button>
 
         <div class="user-menu">
-          <button class="user-trigger" @click="isUserDropdownOpen = !isUserDropdownOpen">
-            <div class="user-avatar">{{ userInitials }}</div>
+          <button class="user-trigger" @click="isUserDropdownOpen = !isUserDropdownOpen" aria-label="Abrir menú de usuario">
+            <div class="user-avatar">
+              <img v-if="authStore.user?.avatar_url" :src="authStore.user.avatar_url" alt="Foto de perfil" />
+              <span v-else>{{ userInitials }}</span>
+            </div>
           </button>
           <div v-if="isUserDropdownOpen" class="dropdown-overlay" @click="isUserDropdownOpen = false"></div>
           <div v-if="isUserDropdownOpen" class="user-dropdown">
@@ -660,6 +663,12 @@ button.search-box:hover {
   font-weight: 600;
   color: var(--text-muted);
   transition: border-color 0.15s;
+  overflow: hidden;
+}
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .user-avatar:hover {
   border-color: var(--text-light);

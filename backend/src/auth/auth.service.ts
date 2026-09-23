@@ -31,8 +31,24 @@ export class AuthService {
     return this.sessionService.getProfile(userId);
   }
 
-  updateProfile(userId: string, data: { name?: string; email?: string }) {
+  updateProfile(userId: string, data: {
+    name?: string; email?: string; phone?: string; avatar_url?: string;
+    position?: string; document_type?: string; document_number?: string;
+    timezone?: string; locale?: string;
+  }) {
     return this.sessionService.updateProfile(userId, data);
+  }
+
+  resendEmailVerification(userId: string) {
+    return this.sessionService.resendEmailVerification(userId);
+  }
+
+  verifyEmail(token: string) {
+    return this.sessionService.verifyEmail(token);
+  }
+
+  cancelEmailChange(userId: string) {
+    return this.sessionService.cancelEmailChange(userId);
   }
 
   changeTemporaryPassword(userId: string, newPasswordPlain: string) {

@@ -79,17 +79,29 @@ export class CompanyRepository {
     return { roles: result.map((row: any) => row.role_name) }; // Devolvemos nombres de roles para simplificar la validación[cite: 13]
   }
 
-  async update(companyId: string, data: { name?: string; tax_id?: string }) {
+  async update(companyId: string, data: {
+    name?: string; tax_id?: string; logo_url?: string; phone?: string; email?: string;
+    address?: string; city?: string; state?: string; country?: string;
+    postal_code?: string; timezone?: string; slug?: string;
+  }) {
     const updates = [];
     const values = [];
     let paramIndex = 1;
 
-    if (data.name) { updates.push(`name = $${paramIndex++}`); values.push(data.name); }
-    if (data.tax_id) { updates.push(`tax_id = $${paramIndex++}`); values.push(data.tax_id); }
+    const fields = [
+      'name', 'tax_id', 'logo_url', 'phone', 'email', 'address',
+      'city', 'state', 'country', 'postal_code', 'timezone', 'slug',
+    ] as const;
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        updates.push(`${field} = $${paramIndex++}`);
+        values.push(data[field] === '' ? null : data[field]);
+      }
+    }
 
     if (updates.length === 0) return null;
     values.push(companyId);
-    
+
     const query = `UPDATE companies SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
     const result = await this.dataSource.query(query, values);
     return result[0];
@@ -97,8 +109,21 @@ export class CompanyRepository {
 
   async findById(companyId: string) {
     const result = await this.dataSource.query(
-      `SELECT id, name, tax_id, is_active FROM companies WHERE id = $1 AND deleted_at IS NULL`,
+      `SELECT id, name, tax_id, is_active, logo_url, phone, email, address,
+              city, state, country, postal_code, timezone, slug,
+              created_at, updated_at
+       FROM companies WHERE id = $1 AND deleted_at IS NULL`,
       [companyId],
+    );
+    return result[0] || null;
+  }
+
+  async findBySlug(slug: string, excludeCompanyId?: string) {
+    const result = await this.dataSource.query(
+      `SELECT id FROM companies
+       WHERE slug = $1 AND deleted_at IS NULL AND ($2::uuid IS NULL OR id != $2)
+       LIMIT 1`,
+      [slug, excludeCompanyId || null],
     );
     return result[0] || null;
   }

@@ -81,6 +81,12 @@ export class MemberController {
       dto.email,
       dto.name,
       dto.roleIds || [],
+      {
+        phone: dto.phone,
+        position: dto.position,
+        document_type: dto.document_type,
+        document_number: dto.document_number,
+      },
     );
     return {
       success: true,
@@ -116,6 +122,10 @@ export class MemberController {
     const result = await this.memberService.updateMember(companyId, targetUserId, {
       roleIds: dto.roleIds,
       status: dto.status,
+      phone: dto.phone,
+      position: dto.position,
+      document_type: dto.document_type,
+      document_number: dto.document_number,
     });
     return { success: true, ...result };
   }

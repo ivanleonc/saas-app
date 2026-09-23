@@ -4,7 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
-import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { ChangePasswordDto, UpdatePasswordDto } from './dto/change-password.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
@@ -190,6 +190,40 @@ export class AuthController {
     return { success: true, ...result };
   }
 
+  @Post('profile/email/resend')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reenviar verificación al correo pendiente' })
+  @ApiResponse({ status: 200, description: 'Correo de verificación reenviado' })
+  @ApiResponse({ status: 401, description: 'Token JWT inválido' })
+  @ApiResponse({ status: 409, description: 'No hay cambio de correo pendiente' })
+  async resendEmailVerification(@CurrentUser('id') userId: string) {
+    const result = await this.authService.resendEmailVerification(userId);
+    return { success: true, ...result };
+  }
+
+  @Post('profile/email/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancelar el cambio de correo pendiente' })
+  @ApiResponse({ status: 200, description: 'Cambio de correo cancelado' })
+  @ApiResponse({ status: 401, description: 'Token JWT inválido' })
+  async cancelEmailChange(@CurrentUser('id') userId: string) {
+    const result = await this.authService.cancelEmailChange(userId);
+    return { success: true, ...result };
+  }
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirmar cambio de correo con token', description: 'Endpoint público. Activa el correo pendiente.' })
+  @ApiResponse({ status: 200, description: 'Correo verificado y actualizado' })
+  @ApiResponse({ status: 401, description: 'Enlace inválido o expirado' })
+  async verifyEmail(@Body() body: { token: string }) {
+    const result = await this.authService.verifyEmail(body?.token);
+    return { success: true, ...result };
+  }
+
   @SkipPasswordChanged()
   @Post('change-temporary-password')
   @HttpCode(HttpStatus.OK)
@@ -225,7 +259,7 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'No puedes reusar contraseñas recientes' })
   async changePassword(
     @CurrentUser('id') userId: string,
-    @Body() body: { currentPassword: string; newPassword: string },
+    @Body() body: UpdatePasswordDto,
   ) {
     const result = await this.authService.changePassword(userId, body.currentPassword, body.newPassword);
     return { success: true, ...result };

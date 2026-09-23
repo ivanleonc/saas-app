@@ -8,7 +8,9 @@ export class UserRepository {
   async findByEmail(email: string) {
     const result = await this.dataSource.query(
       `SELECT id, email, name, password_hash, must_change_password, email_verified,
-              failed_login_attempts, locked_until, password_changed_at
+              failed_login_attempts, locked_until, password_changed_at,
+              phone, avatar_url, position, document_type, document_number,
+              timezone, locale, pending_email
        FROM users WHERE email = $1 AND deleted_at IS NULL`,
       [email],
     );
@@ -17,12 +19,16 @@ export class UserRepository {
 
   async findById(userId: string) {
     const result = await this.dataSource.query(
-      `SELECT id, email, name, must_change_password, email_verified, password_changed_at
+      `SELECT id, email, name, must_change_password, email_verified, password_changed_at,
+              phone, avatar_url, position, document_type, document_number,
+              timezone, locale, pending_email
        FROM users WHERE id = $1 AND deleted_at IS NULL`,
       [userId],
     );
-    return result[0];
+    return result[0] || null;
   }
+
+
 
   async create(email: string, passwordHash: string, name?: string) {
     const result = await this.dataSource.query(
@@ -90,18 +96,56 @@ export class UserRepository {
     );
   }
 
-  async updateProfile(userId: string, data: { name?: string; email?: string }): Promise<void> {
+  async findByVerificationToken(token: string) {
+    const result = await this.dataSource.query(
+      `SELECT id, email, name, pending_email FROM users
+       WHERE email_verification_token = $1 AND deleted_at IS NULL`,
+      [token],
+    );
+    return result[0] || null;
+  }
+
+  async requestEmailChange(userId: string, pendingEmail: string, token: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users SET pending_email = $1, email_verification_token = $2 WHERE id = $3`,
+      [pendingEmail, token, userId],
+    );
+  }
+
+  async confirmEmailChange(userId: string, newEmail: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users SET email = $1, pending_email = NULL,
+              email_verified = TRUE, email_verification_token = NULL
+       WHERE id = $2`,
+      [newEmail, userId],
+    );
+  }
+
+  async clearPendingEmail(userId: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users SET pending_email = NULL, email_verification_token = NULL WHERE id = $1`,
+      [userId],
+    );
+  }
+
+  async updateProfile(userId: string, data: {
+    name?: string; email?: string; phone?: string; avatar_url?: string;
+    position?: string; document_type?: string; document_number?: string;
+    timezone?: string; locale?: string;
+  }): Promise<void> {
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
-    if (data.name !== undefined) {
-      updates.push(`name = $${paramIndex++}`);
-      values.push(data.name);
-    }
-    if (data.email !== undefined) {
-      updates.push(`email = $${paramIndex++}`);
-      values.push(data.email);
+    const fields = [
+      'name', 'email', 'phone', 'avatar_url', 'position',
+      'document_type', 'document_number', 'timezone', 'locale',
+    ] as const;
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        updates.push(`${field} = $${paramIndex++}`);
+        values.push(data[field] === '' ? null : data[field]);
+      }
     }
 
     if (updates.length === 0) return;

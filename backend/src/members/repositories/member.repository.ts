@@ -9,6 +9,8 @@ export class MemberRepository {
     return this.dataSource.query(
       `SELECT
          u.id, u.email, u.name, u.created_at,
+         u.phone, u.position, u.avatar_url,
+         u.document_type, u.document_number,
          COALESCE(array_agg(DISTINCT r.name) FILTER (WHERE r.name IS NOT NULL), '{}') as roles,
          CASE WHEN u.locked_until IS NOT NULL AND u.locked_until > NOW()
            THEN 'inactive' ELSE 'active'
@@ -17,7 +19,9 @@ export class MemberRepository {
        INNER JOIN user_contexts uc ON u.id = uc.user_id
        LEFT JOIN roles r ON uc.role_id = r.id
        WHERE uc.company_id = $1 AND u.deleted_at IS NULL
-       GROUP BY u.id, u.email, u.name, u.created_at, u.locked_until
+       GROUP BY u.id, u.email, u.name, u.created_at, u.locked_until,
+                u.phone, u.position, u.avatar_url,
+                u.document_type, u.document_number
        ORDER BY u.name, u.email`,
       [companyId],
     );
@@ -31,7 +35,14 @@ export class MemberRepository {
     return result.length > 0;
   }
 
-  async addMember(companyId: string, email: string, name: string, roleIds: string[], passwordHash: string) {
+  async addMember(
+    companyId: string,
+    email: string,
+    name: string,
+    roleIds: string[],
+    passwordHash: string,
+    extra?: { phone?: string; position?: string; document_type?: string; document_number?: string },
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -58,10 +69,18 @@ export class MemberRepository {
         }
       } else {
         const newUser = await queryRunner.query(
-          `INSERT INTO users (email, password_hash, name, must_change_password)
-           VALUES ($1, $2, $3, TRUE)
+          `INSERT INTO users (email, password_hash, name, must_change_password, phone, position, document_type, document_number)
+           VALUES ($1, $2, $3, TRUE, $4, $5, $6, $7)
            RETURNING id`,
-          [email, passwordHash, name],
+          [
+            email,
+            passwordHash,
+            name,
+            extra?.phone || null,
+            extra?.position || null,
+            extra?.document_type || null,
+            extra?.document_number || null,
+          ],
         );
         userId = newUser[0].id;
       }
@@ -103,7 +122,18 @@ export class MemberRepository {
     }
   }
 
-  async updateMember(companyId: string, userId: string, data: { roleIds?: string[]; status?: string }) {
+  async updateMember(
+    companyId: string,
+    userId: string,
+    data: {
+      roleIds?: string[];
+      status?: string;
+      phone?: string;
+      position?: string;
+      document_type?: string;
+      document_number?: string;
+    },
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -145,6 +175,24 @@ export class MemberRepository {
             [userId],
           );
         }
+      }
+
+      const profileFields = ['phone', 'position', 'document_type', 'document_number'] as const;
+      const profileUpdates: string[] = [];
+      const profileValues: any[] = [];
+      let profileIndex = 1;
+      for (const field of profileFields) {
+        if (data[field] !== undefined) {
+          profileUpdates.push(`${field} = $${profileIndex++}`);
+          profileValues.push(data[field] || null);
+        }
+      }
+      if (profileUpdates.length > 0) {
+        profileValues.push(userId);
+        await queryRunner.query(
+          `UPDATE users SET ${profileUpdates.join(', ')} WHERE id = $${profileIndex}`,
+          profileValues,
+        );
       }
 
       await queryRunner.commitTransaction();

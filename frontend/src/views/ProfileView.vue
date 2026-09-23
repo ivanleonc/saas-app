@@ -10,11 +10,28 @@
 
       <!-- Profile Hero -->
       <div class="profile-hero">
-        <div class="profile-avatar">{{ getInitials(profileName) }}</div>
+        <div class="profile-avatar">
+          <img v-if="profileAvatar" :src="profileAvatar" alt="Foto de perfil" />
+          <span v-else>{{ getInitials(profileName) }}</span>
+        </div>
         <div class="profile-identity">
           <h2 class="profile-hero-name">{{ profileName || '---' }}</h2>
           <span class="profile-hero-email">{{ profileEmail }}</span>
+          <span v-if="profilePosition" class="profile-hero-position">{{ profilePosition }}</span>
         </div>
+      </div>
+
+      <UiAlert v-if="authStore.user?.pending_email" type="info">
+        Tienes un cambio de correo pendiente a <strong>{{ authStore.user?.pending_email }}</strong>.
+        Revísalo para verificarlo.
+      </UiAlert>
+      <div v-if="authStore.user?.pending_email" class="pending-actions">
+        <UiButton variant="outline" size="sm" width="auto" :loading="isResending" @click="handleResend">
+          Reenviar verificación
+        </UiButton>
+        <UiButton variant="ghost" size="sm" width="auto" @click="handleCancelPending">
+          Cancelar cambio
+        </UiButton>
       </div>
 
       <!-- Profile Info Card -->
@@ -67,7 +84,24 @@
               <UiAlert v-if="errorMessage" type="error">{{ errorMessage }}</UiAlert>
 
               <UiInput v-model="form.name" label="Nombre Completo" required />
-              <UiInput v-model="form.email" label="Correo Electrónico" type="email" required disabled />
+              <UiInput
+                v-model="form.email"
+                label="Correo Electrónico (requiere verificación al cambiarlo)"
+                type="email"
+                autocomplete="email"
+                required
+              />
+              <UiInput v-model="form.phone" label="Teléfono" type="text" autocomplete="tel" />
+              <UiInput v-model="form.position" label="Cargo" type="text" />
+              <div class="form-row">
+                <UiInput v-model="form.document_type" label="Tipo Doc." type="text" placeholder="CC" />
+                <UiInput v-model="form.document_number" label="Núm. Documento" type="text" />
+              </div>
+              <UiInput v-model="form.avatar_url" label="URL de Foto" type="text" placeholder="https://..." />
+              <div class="form-row">
+                <UiInput v-model="form.timezone" label="Zona Horaria" type="text" placeholder="America/Bogota" />
+                <UiInput v-model="form.locale" label="Idioma" type="text" placeholder="es" />
+              </div>
             </div>
 
             <template #footer>
@@ -192,10 +226,21 @@ const errorMessage = ref<string | null>(null);
 const form = reactive({
   name: '',
   email: '',
+  phone: '',
+  avatar_url: '',
+  position: '',
+  document_type: '',
+  document_number: '',
+  timezone: '',
+  locale: '',
 });
+
+const isResending = ref(false);
 
 const profileName = computed(() => authStore.user?.name || '');
 const profileEmail = computed(() => authStore.user?.email || '');
+const profileAvatar = computed(() => authStore.user?.avatar_url || '');
+const profilePosition = computed(() => authStore.user?.position || '');
 
 onMounted(async () => {
   await authStore.fetchProfile();
@@ -207,25 +252,78 @@ const getInitials = (name?: string): string => {
 };
 
 const openProfileModal = () => {
-  form.name = authStore.user?.name || '';
-  form.email = authStore.user?.email || '';
+  const user = authStore.user;
+  form.name = user?.name || '';
+  form.email = user?.email || '';
+  form.phone = user?.phone || '';
+  form.avatar_url = user?.avatar_url || '';
+  form.position = user?.position || '';
+  form.document_type = user?.document_type || '';
+  form.document_number = user?.document_number || '';
+  form.timezone = user?.timezone || '';
+  form.locale = user?.locale || '';
   errorMessage.value = null;
   isProfileModalOpen.value = true;
 };
+
+const emptyToUndefined = (value: string): string | undefined =>
+  value.trim() === '' ? undefined : value.trim();
 
 const handleProfileSubmit = async () => {
   isSavingProfile.value = true;
   errorMessage.value = null;
 
   try {
-    await userService.updateProfile({ name: form.name, email: form.email });
-    authStore.updateProfileData({ name: form.name, email: form.email });
+    const result = await userService.updateProfile({
+      name: form.name,
+      email: form.email,
+      phone: emptyToUndefined(form.phone),
+      avatar_url: emptyToUndefined(form.avatar_url),
+      position: emptyToUndefined(form.position),
+      document_type: emptyToUndefined(form.document_type),
+      document_number: emptyToUndefined(form.document_number),
+      timezone: emptyToUndefined(form.timezone),
+      locale: emptyToUndefined(form.locale),
+    });
+    authStore.updateProfileData({
+      name: form.name,
+      phone: form.phone || null,
+      avatar_url: form.avatar_url || null,
+      position: form.position || null,
+      document_type: form.document_type || null,
+      document_number: form.document_number || null,
+      timezone: form.timezone || null,
+      locale: form.locale || null,
+      pending_email: result?.pending_email ?? authStore.user?.pending_email ?? null,
+    });
     isProfileModalOpen.value = false;
-    toast.success('Perfil actualizado correctamente');
+    toast.success(result?.message || 'Perfil actualizado correctamente');
   } catch (error: any) {
     errorMessage.value = error.response?.data?.message || 'Error al actualizar perfil';
   } finally {
     isSavingProfile.value = false;
+  }
+};
+
+const handleResend = async () => {
+  isResending.value = true;
+  try {
+    const result = await authService.resendEmailVerification();
+    toast.success(`Verificación reenviada a ${result.email}`);
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || 'No se pudo reenviar la verificación');
+  } finally {
+    isResending.value = false;
+  }
+};
+
+const handleCancelPending = async () => {
+  try {
+    await authService.cancelEmailChange();
+    authStore.updateProfileData({ pending_email: null });
+    toast.success('Cambio de correo cancelado');
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || 'No se pudo cancelar el cambio');
   }
 };
 
@@ -356,6 +454,24 @@ const handlePasswordChange = async () => {
   font-weight: 700;
   color: var(--text-main);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-hero-position {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.pending-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .profile-identity {

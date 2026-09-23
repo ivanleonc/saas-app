@@ -42,6 +42,23 @@ export class CompanyController {
     return { success: true, data: companies };
   }
 
+  // NOTA: no usar '@Get(":id")' aquí: colisiona con las rutas exactas
+  // /companies/users y /companies/branches (Express registra first-match-wins
+  // según dependencias de módulos y ParseUUIDPipe devolvería 400).
+  @Get(':id/detail')
+  @ApiOperation({ summary: 'Obtener detalle de una empresa', description: 'Solo miembros de la empresa. El id debe ser un UUID válido.' })
+  @ApiParam({ name: 'id', description: 'UUID de la empresa' })
+  @ApiResponse({ status: 200, description: 'Detalle de la empresa' })
+  @ApiResponse({ status: 403, description: 'No tienes acceso a esta empresa' })
+  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  async getCompany(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseUUIDPipe) companyId: string,
+  ) {
+    const company = await this.companyService.getCompanyDetail(userId, companyId);
+    return { success: true, data: company };
+  }
+
   @Post()
   @ApiOperation({ summary: 'Crear nueva empresa', description: 'El usuario autenticado se convierte automáticamente en Owner de la empresa creada' })
   @ApiResponse({

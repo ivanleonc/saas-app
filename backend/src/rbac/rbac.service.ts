@@ -30,11 +30,11 @@ export class RbacService {
     return { ...role, permissions };
   }
 
-  async createRole(name: string, permissionIds: string[], companyId?: string) {
+  async createRole(name: string, permissionIds: string[], companyId?: string, description?: string, color?: string) {
     const existing = await this.roleRepository.findByName(name, companyId);
     if (existing) throw new ConflictException(`El rol "${name}" ya existe`);
 
-    const role = await this.roleRepository.create(name, companyId);
+    const role = await this.roleRepository.create(name, companyId, description, color);
 
     if (permissionIds.length > 0) {
       await this.roleRepository.setPermissions(role.id, permissionIds);
@@ -55,7 +55,7 @@ export class RbacService {
     return { ...role, permissions: await this.roleRepository.getPermissions(roleId) };
   }
 
-  async updateRole(roleId: string, data: { name?: string; permissionIds?: string[] }) {
+  async updateRole(roleId: string, data: { name?: string; description?: string; color?: string; permissionIds?: string[] }) {
     const role = await this.roleRepository.findById(roleId);
     if (!role) throw new NotFoundException('Rol no encontrado');
 
@@ -66,8 +66,13 @@ export class RbacService {
     if (data.name && data.name !== role.name) {
       const existing = await this.roleRepository.findByName(data.name, role.company_id);
       if (existing) throw new ConflictException(`Ya existe un rol con el nombre "${data.name}"`);
-      await this.roleRepository.updateName(roleId, data.name);
     }
+
+    await this.roleRepository.update(roleId, {
+      name: data.name,
+      description: data.description,
+      color: data.color,
+    });
 
     if (data.permissionIds !== undefined) {
       const validIds = data.permissionIds.filter(id => typeof id === 'string' && id.length > 0);

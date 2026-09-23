@@ -38,6 +38,13 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    // Pública a propósito: el enlace llega al correo y puede abrirse con o sin sesión
+    component: () => import('@/views/VerifyEmailView.vue'),
+    meta: {},
+  },
+  {
     path: '/companies/:companyId',
     redirect: (to) => `/companies/${to.params.companyId}/dashboard`,
   },

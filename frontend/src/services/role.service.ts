@@ -1,7 +1,7 @@
 import { apiClient } from '@/api/axios';
-import type { Permission, Role } from '@/types/role';
+import type { Permission, Role, RolePayload } from '@/types/role';
 
-export type { Permission, Role };
+export type { Permission, Role, RolePayload };
 
 export const roleService = {
   async getAllPermissions(): Promise<Permission[]> {
@@ -19,7 +19,7 @@ export const roleService = {
     return response.data.data;
   },
 
-  async createRole(payload: { name: string; permissionIds?: number[] }) {
+  async createRole(payload: { name: string; description?: string; color?: string; permissionIds?: string[] }) {
     const response = await apiClient.post('/roles', payload);
     return response.data;
   },
@@ -29,7 +29,7 @@ export const roleService = {
     return response.data;
   },
 
-  async updateRole(roleId: string, data: { name?: string; permissionIds?: string[] }) {
+  async updateRole(roleId: string, data: RolePayload) {
     const response = await apiClient.put(`/roles/${roleId}`, data);
     return response.data;
   },

@@ -54,6 +54,21 @@ export class AuthService {
     });
     return response.data;
   }
+
+  async resendEmailVerification(): Promise<{ success: boolean; email: string }> {
+    const response = await apiClient.post('/auth/profile/email/resend');
+    return response.data;
+  }
+
+  async cancelEmailChange(): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/profile/email/cancel');
+    return response.data;
+  }
+
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/verify-email', { token });
+    return response.data;
+  }
 }
 
 export const authService = new AuthService();

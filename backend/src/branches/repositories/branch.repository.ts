@@ -7,19 +7,27 @@ export class BranchRepository {
 
   async findByCompany(companyId: string) {
     return this.dataSource.query(
-      `SELECT id, company_id, name, address, city, state, country, postal_code, phone, email, is_active, created_at, updated_at
-       FROM branches
-       WHERE company_id = $1 AND deleted_at IS NULL
-       ORDER BY name`,
+      `SELECT b.id, b.company_id, b.name, b.address, b.city, b.state, b.country,
+              b.postal_code, b.phone, b.email, b.is_active, b.code, b.is_main,
+              b.timezone, b.created_at, b.updated_at,
+              u.name as manager_name
+       FROM branches b
+       LEFT JOIN users u ON u.id = b.manager_user_id AND u.deleted_at IS NULL
+       WHERE b.company_id = $1 AND b.deleted_at IS NULL
+       ORDER BY b.name`,
       [companyId],
     );
   }
 
   async findById(branchId: string, companyId: string) {
     const result = await this.dataSource.query(
-      `SELECT id, company_id, name, address, city, state, country, postal_code, phone, email, is_active, created_at, updated_at
-       FROM branches
-       WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL`,
+      `SELECT b.id, b.company_id, b.name, b.address, b.city, b.state, b.country,
+              b.postal_code, b.phone, b.email, b.is_active, b.code, b.is_main,
+              b.timezone, b.manager_user_id, b.created_at, b.updated_at,
+              u.name as manager_name
+       FROM branches b
+       LEFT JOIN users u ON u.id = b.manager_user_id AND u.deleted_at IS NULL
+       WHERE b.id = $1 AND b.company_id = $2 AND b.deleted_at IS NULL`,
       [branchId, companyId],
     );
     return result[0] || null;
@@ -28,13 +36,18 @@ export class BranchRepository {
   async create(companyId: string, data: {
     name: string; address?: string; city?: string; state?: string;
     country?: string; postal_code?: string; phone?: string; email?: string;
+    code?: string; manager_user_id?: string; timezone?: string;
   }) {
+    if (data.manager_user_id) {
+      await this.assertUserInCompany(data.manager_user_id, companyId);
+    }
     const result = await this.dataSource.query(
-      `INSERT INTO branches (company_id, name, address, city, state, country, postal_code, phone, email)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, company_id, name, address, city, state, country, postal_code, phone, email, is_active, created_at, updated_at`,
+      `INSERT INTO branches (company_id, name, address, city, state, country, postal_code, phone, email, code, manager_user_id, timezone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, company_id, name, address, city, state, country, postal_code, phone, email, code, manager_user_id, timezone, is_main, is_active, created_at, updated_at`,
       [companyId, data.name, data.address || null, data.city || null, data.state || null,
-       data.country || null, data.postal_code || null, data.phone || null, data.email || null],
+       data.country || null, data.postal_code || null, data.phone || null, data.email || null,
+       data.code || null, data.manager_user_id || null, data.timezone || null],
     );
     return result[0];
   }
@@ -42,16 +55,30 @@ export class BranchRepository {
   async update(branchId: string, companyId: string, data: {
     name?: string; address?: string; city?: string; state?: string;
     country?: string; postal_code?: string; phone?: string; email?: string; is_active?: boolean;
+    code?: string; is_main?: boolean; manager_user_id?: string; timezone?: string;
   }) {
+    if (data.manager_user_id) {
+      await this.assertUserInCompany(data.manager_user_id, companyId);
+    }
+    if (data.is_main === true) {
+      await this.dataSource.query(
+        `UPDATE branches SET is_main = FALSE
+         WHERE company_id = $1 AND id != $2 AND deleted_at IS NULL`,
+        [companyId, branchId],
+      );
+    }
+
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
-    const fields = ['name', 'address', 'city', 'state', 'country', 'postal_code', 'phone', 'email', 'is_active'] as const;
+    const nullable = new Set(['address', 'city', 'state', 'country', 'postal_code', 'phone', 'email', 'code', 'manager_user_id', 'timezone']);
+    const fields = ['name', 'address', 'city', 'state', 'country', 'postal_code', 'phone', 'email', 'is_active', 'code', 'is_main', 'manager_user_id', 'timezone'] as const;
     for (const field of fields) {
       if (data[field] !== undefined) {
+        const value = nullable.has(field) && data[field] === '' ? null : data[field];
         updates.push(`${field} = $${paramIndex++}`);
-        values.push(data[field]);
+        values.push(value);
       }
     }
 
@@ -61,10 +88,20 @@ export class BranchRepository {
     const result = await this.dataSource.query(
       `UPDATE branches SET ${updates.join(', ')}
        WHERE id = $${paramIndex++} AND company_id = $${paramIndex} AND deleted_at IS NULL
-       RETURNING id, company_id, name, address, city, state, country, postal_code, phone, email, is_active, created_at, updated_at`,
+       RETURNING id, company_id, name, address, city, state, country, postal_code, phone, email, code, manager_user_id, timezone, is_main, is_active, created_at, updated_at`,
       values,
     );
     return result[0] || null;
+  }
+
+  private async assertUserInCompany(userId: string, companyId: string) {
+    const rows = await this.dataSource.query(
+      `SELECT 1 FROM user_contexts WHERE user_id = $1 AND company_id = $2 LIMIT 1`,
+      [userId, companyId],
+    );
+    if (rows.length === 0) {
+      throw new NotFoundException('El responsable debe ser miembro de la empresa');
+    }
   }
 
   async softDelete(branchId: string, companyId: string) {

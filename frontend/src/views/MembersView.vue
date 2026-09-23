@@ -43,8 +43,14 @@
               <tr v-for="member in filteredMembers" :key="member.id">
                 <td>
                   <div class="user-cell">
-                    <div class="user-avatar">{{ getInitials(member.name) }}</div>
-                    <span class="font-medium truncate" :title="member.name">{{ member.name }}</span>
+                    <div class="user-avatar">
+                      <img v-if="member.avatar_url" :src="member.avatar_url" :alt="member.name" />
+                      <span v-else>{{ getInitials(member.name) }}</span>
+                    </div>
+                    <div class="user-cell-text">
+                      <span class="font-medium truncate" :title="member.name">{{ member.name }}</span>
+                      <span v-if="member.position" class="user-cell-sub truncate" :title="member.position">{{ member.position }}</span>
+                    </div>
                   </div>
                 </td>
                 <td class="truncate" :title="member.email">{{ member.email }}</td>
@@ -148,6 +154,14 @@
               <template v-else>
                 <UiInput v-model="addForm.name" label="Nombre Completo" required />
                 <UiInput v-model="addForm.email" label="Correo Electrónico" type="email" required />
+                <div class="form-row">
+                  <UiInput v-model="addForm.phone" label="Teléfono (Opcional)" type="text" autocomplete="tel" />
+                  <UiInput v-model="addForm.position" label="Cargo (Opcional)" type="text" />
+                </div>
+                <div class="form-row">
+                  <UiInput v-model="addForm.document_type" label="Tipo Doc. (Opcional)" type="text" placeholder="CC" />
+                  <UiInput v-model="addForm.document_number" label="Núm. Documento (Opcional)" type="text" />
+                </div>
                 <UiDualListbox
                   v-model="addForm.roleIds"
                   :available="roleItems"
@@ -183,11 +197,17 @@
             
             <div class="form-body">
               <UiAlert v-if="memberStore.error">{{ memberStore.error }}</UiAlert>
-              <UiSelect 
-                v-model="editForm.status" 
-                label="Estado de la Cuenta" 
-                :options="statusOptions" 
+              <UiSelect
+                v-model="editForm.status"
+                label="Estado de la Cuenta"
+                :options="statusOptions"
               />
+              <UiInput v-model="editForm.phone" label="Teléfono" type="text" autocomplete="tel" />
+              <UiInput v-model="editForm.position" label="Cargo" type="text" />
+              <div class="form-row">
+                <UiInput v-model="editForm.document_type" label="Tipo Doc." type="text" placeholder="CC" />
+                <UiInput v-model="editForm.document_number" label="Núm. Documento" type="text" />
+              </div>
 
               <UiDualListbox
                 v-model="editForm.roleIds"
@@ -387,7 +407,6 @@ const statusFilterOptions = computed(() => [
   { label: 'Todos los estados', value: '' },
   { label: 'Activo', value: 'active' },
   { label: 'Inactivo', value: 'inactive' },
-  { label: 'Pendiente', value: 'pending' },
 ]);
 
 const filteredMembers = computed(() => {
@@ -421,7 +440,15 @@ const isSelf = (memberId: string): boolean => authStore.user?.id === memberId;
 
 // --- ADD MEMBER ---
 const isAddModalOpen = ref(false);
-const addForm = reactive({ name: '', email: '', roleIds: [] as string[] });
+const addForm = reactive({
+  name: '',
+  email: '',
+  roleIds: [] as string[],
+  phone: '',
+  position: '',
+  document_type: '',
+  document_number: '',
+});
 const newMemberCredentials = ref<{ email: string; password: string } | null>(null);
 
 onMounted(async () => {
@@ -437,6 +464,10 @@ const openAddModal = () => {
   addForm.name = '';
   addForm.email = '';
   addForm.roleIds = [];
+  addForm.phone = '';
+  addForm.position = '';
+  addForm.document_type = '';
+  addForm.document_number = '';
   newMemberCredentials.value = null;
   memberStore.error = null;
   isAddModalOpen.value = true;
@@ -448,15 +479,23 @@ const handleAddSubmit = async () => {
     const payload = {
       name: addForm.name,
       email: addForm.email,
-      roleIds: addForm.roleIds
+      roleIds: addForm.roleIds,
+      phone: addForm.phone.trim() || undefined,
+      position: addForm.position.trim() || undefined,
+      document_type: addForm.document_type.trim() || undefined,
+      document_number: addForm.document_number.trim() || undefined,
     };
 
     const data = await memberStore.addMember(payload);
     newMemberCredentials.value = { email: data.email, password: data.temporary_password };
-    
-    addForm.name = ''; 
-    addForm.email = ''; 
+
+    addForm.name = '';
+    addForm.email = '';
     addForm.roleIds = [];
+    addForm.phone = '';
+    addForm.position = '';
+    addForm.document_type = '';
+    addForm.document_number = '';
   } catch (error) {
     console.error('Error al agregar miembro:', error);
   }
@@ -468,7 +507,11 @@ const editForm = reactive({
   id: '',
   name: '',
   roleIds: [] as string[],
-  status: 'active'
+  status: 'active',
+  phone: '',
+  position: '',
+  document_type: '',
+  document_number: '',
 });
 
 const statusOptions = [
@@ -478,15 +521,21 @@ const statusOptions = [
 
 const editSnapshot = ref('');
 
+const editableContactFields = () => ({
+  roleIds: [...editForm.roleIds],
+  status: editForm.status,
+  phone: editForm.phone,
+  position: editForm.position,
+  document_type: editForm.document_type,
+  document_number: editForm.document_number,
+});
+
 const snapshotEditForm = () => {
-  editSnapshot.value = JSON.stringify({
-    roleIds: [...editForm.roleIds],
-    status: editForm.status,
-  });
+  editSnapshot.value = JSON.stringify(editableContactFields());
 };
 
 const isEditDirty = computed(() =>
-  JSON.stringify({ roleIds: [...editForm.roleIds], status: editForm.status }) !== editSnapshot.value
+  JSON.stringify(editableContactFields()) !== editSnapshot.value
 );
 
 const openEditModal = (member: any) => {
@@ -497,6 +546,10 @@ const openEditModal = (member: any) => {
   editForm.id = member.id;
   editForm.name = member.name;
   editForm.status = member.status || 'active';
+  editForm.phone = member.phone || '';
+  editForm.position = member.position || '';
+  editForm.document_type = member.document_type || '';
+  editForm.document_number = member.document_number || '';
 
   if (member.roles && member.roles.length > 0) {
     editForm.roleIds = availableRoles.value
@@ -515,7 +568,11 @@ const handleEditSubmit = async () => {
   try {
     await memberStore.updateMember(editForm.id, {
       roleIds: editForm.roleIds,
-      status: editForm.status
+      status: editForm.status,
+      phone: editForm.phone.trim() || undefined,
+      position: editForm.position.trim() || undefined,
+      document_type: editForm.document_type.trim() || undefined,
+      document_number: editForm.document_number.trim() || undefined,
     });
     isEditModalOpen.value = false;
     toast.success('Miembro actualizado correctamente');

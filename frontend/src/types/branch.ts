@@ -10,6 +10,11 @@ export interface Branch {
   phone: string | null;
   email: string | null;
   is_active: boolean;
+  code?: string | null;
+  is_main?: boolean;
+  manager_user_id?: string | null;
+  manager_name?: string | null;
+  timezone?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +28,9 @@ export interface CreateBranchPayload {
   postal_code?: string;
   phone?: string;
   email?: string;
+  code?: string;
+  manager_user_id?: string;
+  timezone?: string;
 }
 
 export interface UpdateBranchPayload {
@@ -35,6 +43,10 @@ export interface UpdateBranchPayload {
   phone?: string;
   email?: string;
   is_active?: boolean;
+  code?: string;
+  is_main?: boolean;
+  manager_user_id?: string;
+  timezone?: string;
 }
 
 export interface BranchesResponse {

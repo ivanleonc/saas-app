@@ -32,7 +32,11 @@
         <UiCard v-for="role in roles" :key="role.id" class="role-card">
           <div class="role-card-header">
             <div class="role-title-row">
-              <div class="role-icon" :class="role.is_system ? 'system' : 'custom'">
+              <div
+                class="role-icon"
+                :class="role.is_system ? 'system' : 'custom'"
+                :style="role.color ? { background: `${role.color}1A`, color: role.color } : undefined"
+              >
                 <IconShield v-if="role.is_system" :size="20" />
                 <IconUserCog v-else :size="20" />
               </div>
@@ -65,7 +69,7 @@
             </div>
           </div>
 
-          <p class="role-description">{{ getRoleDescription(role.name) }}</p>
+            <p class="role-description">{{ role.description || getRoleDescription(role.name) }}</p>
 
           <div class="role-card-body">
             <div v-if="role.permissions.length === 0" class="role-empty">
@@ -127,6 +131,7 @@
             <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
             <UiInput v-model="form.name" label="Nombre del Rol" placeholder="Ej: Gestor de Finanzas" required />
             <UiInput v-model="form.description" label="Descripción (Opcional)" placeholder="¿Qué hace este rol?" />
+            <UiInput v-model="form.color" label="Color (Opcional)" placeholder="#8b5cf6" />
             
             <UiDualListbox
               v-model="form.permissionIds"
@@ -160,6 +165,8 @@
         <div class="form-body">
           <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
           <UiInput v-model="editForm.name" label="Nombre del Rol" required />
+          <UiInput v-model="editForm.description" label="Descripción (Opcional)" placeholder="¿Qué hace este rol?" />
+          <UiInput v-model="editForm.color" label="Color (Opcional)" placeholder="#8b5cf6" />
           <UiDualListbox
             v-model="editForm.permissionIds"
             :available="allPermissionItems"
@@ -237,10 +244,10 @@ const isSaving = ref(false);
 const errorMsg = ref('');
 
 const isModalOpen = ref(false);
-const form = reactive({ name: '', description: '', permissionIds: [] as string[] });
+const form = reactive({ name: '', description: '', color: '', permissionIds: [] as string[] });
 
 const isEditModalOpen = ref(false);
-const editForm = reactive({ id: '', name: '', permissionIds: [] as string[] });
+const editForm = reactive({ id: '', name: '', description: '', color: '', permissionIds: [] as string[] });
 
 const isDeleteModalOpen = ref(false);
 const deleteTarget = ref<{ id: string; name: string } | null>(null);
@@ -321,20 +328,26 @@ function isModuleExpanded(roleId: string, module: string): boolean {
 
 const editSnapshot = ref('');
 
+const editableRoleFields = () => ({
+  name: editForm.name,
+  description: editForm.description,
+  color: editForm.color,
+  permissionIds: [...editForm.permissionIds],
+});
+
 const snapshotEditForm = () => {
-  editSnapshot.value = JSON.stringify({
-    name: editForm.name,
-    permissionIds: [...editForm.permissionIds],
-  });
+  editSnapshot.value = JSON.stringify(editableRoleFields());
 };
 
 const isEditDirty = computed(() =>
-  JSON.stringify({ name: editForm.name, permissionIds: [...editForm.permissionIds] }) !== editSnapshot.value
+  JSON.stringify(editableRoleFields()) !== editSnapshot.value
 );
 
 function openEditModal(role: Role) {
   editForm.id = role.id;
   editForm.name = role.name;
+  editForm.description = role.description || '';
+  editForm.color = role.color || '';
   editForm.permissionIds = role.permissions.map((p) => p.id);
   errorMsg.value = '';
   snapshotEditForm();
@@ -353,6 +366,8 @@ async function handleEditSubmit() {
   try {
     await roleService.updateRole(editForm.id, {
       name: editForm.name,
+      description: editForm.description.trim() || undefined,
+      color: editForm.color.trim() || undefined,
       permissionIds: editForm.permissionIds,
     });
     isEditModalOpen.value = false;
@@ -403,7 +418,7 @@ const fetchData = async () => {
 onMounted(fetchData);
 
 const openCreateModal = () => {
-  form.name = ''; form.description = ''; form.permissionIds = [];
+  form.name = ''; form.description = ''; form.color = ''; form.permissionIds = [];
   errorMsg.value = '';
   isModalOpen.value = true;
 };
@@ -415,6 +430,8 @@ const handleCreateSubmit = async () => {
   try {
     await roleService.createRole({
       name: form.name,
+      description: form.description.trim() || undefined,
+      color: form.color.trim() || undefined,
       permissionIds: form.permissionIds
     });
     isModalOpen.value = false;

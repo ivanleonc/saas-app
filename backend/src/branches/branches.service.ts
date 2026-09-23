@@ -16,6 +16,7 @@ export class BranchService {
   async createBranch(companyId: string, data: {
     name: string; address?: string; city?: string; state?: string;
     country?: string; postal_code?: string; phone?: string; email?: string;
+    code?: string; manager_user_id?: string; timezone?: string;
   }) {
     return this.branchRepository.create(companyId, data);
   }
@@ -23,6 +24,7 @@ export class BranchService {
   async updateBranch(companyId: string, branchId: string, data: {
     name?: string; address?: string; city?: string; state?: string;
     country?: string; postal_code?: string; phone?: string; email?: string; is_active?: boolean;
+    code?: string; is_main?: boolean; manager_user_id?: string; timezone?: string;
   }) {
     return this.branchRepository.update(branchId, companyId, data);
   }

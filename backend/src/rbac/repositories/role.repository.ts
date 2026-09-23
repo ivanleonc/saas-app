@@ -9,20 +9,20 @@ export class RoleRepository {
   async findAll(companyId?: string) {
     if (companyId) {
       return this.dataSource.query(
-        `SELECT id, name, company_id FROM roles
+        `SELECT id, name, description, color, company_id FROM roles
          WHERE (company_id IS NULL OR company_id = $1) AND deleted_at IS NULL
          ORDER BY name`,
         [companyId],
       );
     }
     return this.dataSource.query(
-      `SELECT id, name, company_id FROM roles WHERE deleted_at IS NULL ORDER BY name`,
+      `SELECT id, name, description, color, company_id FROM roles WHERE deleted_at IS NULL ORDER BY name`,
     );
   }
 
   async findById(id: string) {
     const result = await this.dataSource.query(
-      `SELECT id, name, company_id FROM roles WHERE id = $1 AND deleted_at IS NULL`,
+      `SELECT id, name, description, color, company_id FROM roles WHERE id = $1 AND deleted_at IS NULL`,
       [id],
     );
     return result[0];
@@ -31,23 +31,23 @@ export class RoleRepository {
   async findByName(name: string, companyId?: string) {
     if (companyId) {
       const result = await this.dataSource.query(
-        `SELECT id, name, company_id FROM roles
+        `SELECT id, name, description, color, company_id FROM roles
          WHERE name = $1 AND (company_id IS NULL OR company_id = $2) AND deleted_at IS NULL`,
         [name, companyId],
       );
       return result[0];
     }
     const result = await this.dataSource.query(
-      `SELECT id, name, company_id FROM roles WHERE name = $1 AND deleted_at IS NULL`,
+      `SELECT id, name, description, color, company_id FROM roles WHERE name = $1 AND deleted_at IS NULL`,
       [name],
     );
     return result[0];
   }
 
-  async create(name: string, companyId?: string) {
+  async create(name: string, companyId?: string, description?: string, color?: string) {
     const result = await this.dataSource.query(
-      `INSERT INTO roles (name, company_id) VALUES ($1, $2) RETURNING id, name, company_id`,
-      [name, companyId || null],
+      `INSERT INTO roles (name, company_id, description, color) VALUES ($1, $2, $3, $4) RETURNING id, name, description, color, company_id`,
+      [name, companyId || null, description || null, color || null],
     );
     return result[0];
   }
@@ -56,6 +56,32 @@ export class RoleRepository {
     await this.dataSource.query(
       `UPDATE roles SET name = $1 WHERE id = $2`,
       [name, id],
+    );
+  }
+
+  async update(id: string, data: { name?: string; description?: string; color?: string }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(data.name);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(data.description || null);
+    }
+    if (data.color !== undefined) {
+      updates.push(`color = $${paramIndex++}`);
+      values.push(data.color || null);
+    }
+
+    if (updates.length === 0) return;
+    values.push(id);
+    await this.dataSource.query(
+      `UPDATE roles SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+      values,
     );
   }
 

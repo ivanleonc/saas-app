@@ -3,14 +3,23 @@ export interface Member {
   name: string;
   email: string;
   roles: string[];
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive';
   created_at: string;
+  phone?: string | null;
+  position?: string | null;
+  avatar_url?: string | null;
+  document_type?: string | null;
+  document_number?: string | null;
 }
 
 export interface CreateMemberPayload {
   name: string;
   email: string;
   roleIds?: string[];
+  phone?: string;
+  position?: string;
+  document_type?: string;
+  document_number?: string;
 }
 
 export interface MembersResponse {
@@ -33,4 +42,8 @@ export interface CreateMemberResponse {
 export interface UpdateMemberPayload {
   roleIds?: string[];
   status?: 'active' | 'inactive';
+  phone?: string;
+  position?: string;
+  document_type?: string;
+  document_number?: string;
 }

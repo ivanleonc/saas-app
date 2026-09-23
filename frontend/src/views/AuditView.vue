@@ -344,6 +344,17 @@ function getInitials(name?: string): string {
   return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
+function userTimeZone(): string | undefined {
+  const tz = authStore.user?.timezone;
+  if (!tz) return undefined;
+  try {
+    Intl.DateTimeFormat('es-ES', { timeZone: tz });
+    return tz;
+  } catch {
+    return undefined;
+  }
+}
+
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -353,13 +364,16 @@ function formatRelativeTime(dateStr: string): string {
   if (diff < 3600) return `Hace ${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
   if (diff < 604800) return `Hace ${Math.floor(diff / 86400)}d`;
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  const tz = userTimeZone();
+  return date.toLocaleDateString('es-ES', tz ? { day: 'numeric', month: 'short', timeZone: tz } : { day: 'numeric', month: 'short' });
 }
 
 function formatFullDate(dateStr: string): string {
+  const tz = userTimeZone();
   return new Date(dateStr).toLocaleString('es-ES', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    ...(tz ? { timeZone: tz } : {}),
   });
 }
 

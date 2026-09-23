@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException, ForbiddenException, ConflictExceptio
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { EmailService } from '../email/email.service.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import { TokenBlacklistRepository } from './repositories/token-blacklist.repository.js';
@@ -27,6 +29,7 @@ export class SessionService {
     private companyService: CompanyService,
     private auditLogService: AuditLogService,
     private rbacService: RbacService,
+    private emailService: EmailService,
   ) {}
 
   private get jwtSecret(): string {
@@ -115,6 +118,12 @@ export class SessionService {
         must_change_password: user.must_change_password,
         email_verified: user.email_verified,
         password_expired: passwordExpired,
+        phone: user.phone || null,
+        avatar_url: user.avatar_url || null,
+        position: user.position || null,
+        timezone: user.timezone || null,
+        locale: user.locale || 'es',
+        pending_email: user.pending_email || null,
         tenants,
         roles: defaultRoles,
         permissions: defaultPermissions,
@@ -220,24 +229,40 @@ export class SessionService {
       must_change_password: user.must_change_password,
       email_verified: user.email_verified,
       password_expired: passwordExpired,
+      phone: user.phone || null,
+      avatar_url: user.avatar_url || null,
+      position: user.position || null,
+      document_type: user.document_type || null,
+      document_number: user.document_number || null,
+      timezone: user.timezone || null,
+      locale: user.locale || 'es',
+      pending_email: user.pending_email || null,
       tenants,
       roles,
       permissions,
     };
   }
 
-  async updateProfile(userId: string, data: { name?: string; email?: string }) {
+  async updateProfile(userId: string, data: {
+    name?: string; email?: string; phone?: string; avatar_url?: string;
+    position?: string; document_type?: string; document_number?: string;
+    timezone?: string; locale?: string;
+  }) {
     const user = await this.userRepository.findById(userId);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-    if (data.email && data.email !== user.email) {
-      const existing = await this.userRepository.findByEmail(data.email);
-      if (existing) {
+    const { email, ...profileData } = data;
+    let pendingEmail: string | undefined;
+
+    if (email && email !== user.email) {
+      const existing = await this.userRepository.findByEmail(email);
+      if (existing && existing.id !== userId) {
         throw new ConflictException('El correo electrónico ya está en uso');
       }
+      pendingEmail = await this.requestEmailChange(userId, email);
     }
 
-    await this.userRepository.updateProfile(userId, data);
+    await this.userRepository.updateProfile(userId, profileData);
 
     const companyId = await this.getFirstCompanyId(userId);
     if (companyId) {
@@ -247,12 +272,92 @@ export class SessionService {
         action: 'PROFILE_UPDATED',
         entityType: 'User',
         entityId: userId,
-        oldValues: { name: user.name, email: user.email },
-        newValues: data,
+        oldValues: {
+          name: user.name,
+          email: user.email,
+          phone: user.phone || null,
+          position: user.position || null,
+        },
+        newValues: {
+          ...profileData,
+          ...(pendingEmail ? { email: `${pendingEmail} (pendiente de verificación)` } : {}),
+        },
       });
     }
 
-    return { message: 'Perfil actualizado correctamente' };
+    return {
+      message: pendingEmail
+        ? 'Perfil actualizado. Revisa tu nuevo correo para verificarlo.'
+        : 'Perfil actualizado correctamente',
+      pending_email: pendingEmail || user.pending_email || null,
+    };
+  }
+
+  async requestEmailChange(userId: string, newEmail: string): Promise<string> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+    const token = randomBytes(32).toString('hex');
+    await this.userRepository.requestEmailChange(userId, newEmail, token);
+    await this.emailService.sendEmailVerification(newEmail, token);
+
+    const companyId = await this.getFirstCompanyId(userId);
+    if (companyId) {
+      await this.auditLogService.log({
+        userId,
+        companyId,
+        action: 'EMAIL_CHANGE_REQUESTED',
+        entityType: 'User',
+        entityId: userId,
+        oldValues: { email: user.email },
+        newValues: { email: `${newEmail} (pendiente de verificación)` },
+      });
+    }
+
+    return newEmail;
+  }
+
+  async resendEmailVerification(userId: string) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+    if (!user.pending_email) {
+      throw new ConflictException('No tienes ningún cambio de correo pendiente');
+    }
+
+    const token = randomBytes(32).toString('hex');
+    await this.userRepository.requestEmailChange(userId, user.pending_email, token);
+    await this.emailService.sendEmailVerification(user.pending_email, token);
+
+    return { email: user.pending_email };
+  }
+
+  async verifyEmail(token: string) {
+    const user = await this.userRepository.findByVerificationToken(token);
+    if (!user || !user.pending_email) {
+      throw new UnauthorizedException('Enlace de verificación inválido o expirado');
+    }
+
+    await this.userRepository.confirmEmailChange(user.id, user.pending_email);
+
+    const companyId = await this.getFirstCompanyId(user.id);
+    if (companyId) {
+      await this.auditLogService.log({
+        userId: user.id,
+        companyId,
+        action: 'EMAIL_CHANGE_CONFIRMED',
+        entityType: 'User',
+        entityId: user.id,
+        oldValues: { email: user.email },
+        newValues: { email: user.pending_email },
+      });
+    }
+
+    return { message: 'Correo verificado y actualizado correctamente' };
+  }
+
+  async cancelEmailChange(userId: string) {
+    await this.userRepository.clearPendingEmail(userId);
+    return { message: 'Cambio de correo cancelado' };
   }
 
   private async buildCompanyRolesAndPermissions(userId: string, tenants: any[]) {

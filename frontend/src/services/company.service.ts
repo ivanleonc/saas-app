@@ -1,9 +1,14 @@
 import { apiClient } from '@/api/axios';
-import type { UpdateCompanyPayload } from '@/types/company';
+import type { UpdateCompanyPayload, CompanyDetail } from '@/types/company';
 
 export const companyService = {
   async getCompanies() {
     const response = await apiClient.get('/companies');
+    return response.data;
+  },
+
+  async getCompany(companyId: string): Promise<{ success: boolean; data: CompanyDetail }> {
+    const response = await apiClient.get(`/companies/${companyId}/detail`);
     return response.data;
   },
 

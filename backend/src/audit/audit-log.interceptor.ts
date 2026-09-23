@@ -135,7 +135,9 @@ export class AuditLogInterceptor implements NestInterceptor {
       switch (entityType) {
         case 'Company': {
           const rows = await this.dataSource.query(
-            `SELECT id, name, tax_id, is_active FROM companies WHERE id = $1`, [entityId]
+            `SELECT id, name, tax_id, is_active, phone, email, address, city,
+                    state, country, postal_code, timezone, slug, logo_url
+             FROM companies WHERE id = $1`, [entityId]
           );
           return rows[0] || null;
         }
@@ -147,7 +149,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         }
         case 'Role': {
           const rows = await this.dataSource.query(
-            `SELECT id, name, company_id FROM roles WHERE id = $1 AND deleted_at IS NULL`, [entityId]
+            `SELECT id, name, description, color, company_id FROM roles WHERE id = $1 AND deleted_at IS NULL`, [entityId]
           );
           if (!rows[0]) return null;
           const permRows = await this.dataSource.query(
@@ -166,6 +168,8 @@ export class AuditLogInterceptor implements NestInterceptor {
           return {
             id: rows[0].id,
             name: rows[0].name,
+            description: rows[0].description || null,
+            color: rows[0].color || null,
             company: companyName || 'Sistema',
             permissions: permRows.map((r: any) => r.name),
           };
@@ -174,19 +178,24 @@ export class AuditLogInterceptor implements NestInterceptor {
           const targetId = entityId !== '00000000-0000-0000-0000-000000000000' ? entityId : userId;
           if (!targetId) return null;
           const rows = await this.dataSource.query(
-            `SELECT id, email, name FROM users WHERE id = $1`, [targetId]
+            `SELECT id, email, name, phone, position, document_type, document_number
+             FROM users WHERE id = $1`, [targetId]
           );
           return rows[0] || null;
         }
         case 'Branch': {
           const rows = await this.dataSource.query(
-            `SELECT id, name, address, city, state, country, is_active FROM branches WHERE id = $1 AND deleted_at IS NULL`, [entityId]
+            `SELECT b.id, b.name, b.address, b.city, b.state, b.country, b.is_active,
+                    b.code, b.is_main, b.timezone, u.name as manager
+             FROM branches b
+             LEFT JOIN users u ON u.id = b.manager_user_id AND u.deleted_at IS NULL
+             WHERE b.id = $1 AND b.deleted_at IS NULL`, [entityId]
           );
           return rows[0] || null;
         }
         case 'Member': {
           const rows = await this.dataSource.query(
-            `SELECT id, email, name,
+            `SELECT id, email, name, phone, position, document_type, document_number,
               CASE WHEN locked_until IS NOT NULL AND locked_until > NOW()
                 THEN 'inactive' ELSE 'active'
               END as status
@@ -206,7 +215,9 @@ export class AuditLogInterceptor implements NestInterceptor {
         }
         case 'Settings': {
           const rows = await this.dataSource.query(
-            `SELECT id, name, tax_id, is_active FROM companies WHERE id = $1`, [entityId]
+            `SELECT id, name, tax_id, is_active, phone, email, address, city,
+                    state, country, postal_code, timezone, slug
+             FROM companies WHERE id = $1`, [entityId]
           );
           return rows[0] || null;
         }
@@ -238,6 +249,14 @@ export class AuditLogInterceptor implements NestInterceptor {
           [permissionIds],
         );
         return { ...rest, permissions: rows.map((r: any) => r.name) };
+      }
+      if (entityType === 'Branch' && typeof body.manager_user_id === 'string' && body.manager_user_id.length > 0) {
+        const { manager_user_id, ...rest } = body;
+        const rows = await this.dataSource.query(
+          `SELECT name FROM users WHERE id = $1 AND deleted_at IS NULL`,
+          [manager_user_id],
+        );
+        return { ...rest, manager: rows[0]?.name || manager_user_id };
       }
     } catch {
       // Fall through to raw body on any lookup failure

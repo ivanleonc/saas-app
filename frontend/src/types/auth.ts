@@ -16,6 +16,14 @@ export interface AuthUser {
   must_change_password: boolean;
   email_verified: boolean;
   password_expired: boolean;
+  phone?: string | null;
+  avatar_url?: string | null;
+  position?: string | null;
+  document_type?: string | null;
+  document_number?: string | null;
+  timezone?: string | null;
+  locale?: string | null;
+  pending_email?: string | null;
   tenants: Tenant[];
   roles: string[];
   permissions: string[];

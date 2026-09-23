@@ -17,10 +17,16 @@ export class MemberService {
     return this.memberRepository.getMembersByCompany(companyId);
   }
 
-  async addMember(companyId: string, email: string, name: string, roleIds: string[]) {
+  async addMember(
+    companyId: string,
+    email: string,
+    name: string,
+    roleIds: string[],
+    extra?: { phone?: string; position?: string; document_type?: string; document_number?: string },
+  ) {
     const tempPassword = this.generateTempPassword();
     const passwordHash = await this.passwordService.hashPassword(tempPassword);
-    const result = await this.memberRepository.addMember(companyId, email, name, roleIds, passwordHash);
+    const result = await this.memberRepository.addMember(companyId, email, name, roleIds, passwordHash, extra);
 
     return {
       ...result,
@@ -28,7 +34,18 @@ export class MemberService {
     };
   }
 
-  async updateMember(companyId: string, userId: string, data: { roleIds?: string[]; status?: string }) {
+  async updateMember(
+    companyId: string,
+    userId: string,
+    data: {
+      roleIds?: string[];
+      status?: string;
+      phone?: string;
+      position?: string;
+      document_type?: string;
+      document_number?: string;
+    },
+  ) {
     return this.memberRepository.updateMember(companyId, userId, data);
   }
 

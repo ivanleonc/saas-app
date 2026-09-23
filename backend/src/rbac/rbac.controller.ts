@@ -53,7 +53,7 @@ export class RbacController {
     @Body() dto: CreateRoleDto,
     @Headers('x-company-id') companyId?: string,
   ) {
-    const role = await this.rbacService.createRole(dto.name, dto.permissionIds || [], companyId);
+    const role = await this.rbacService.createRole(dto.name, dto.permissionIds || [], companyId, dto.description, dto.color);
     return { success: true, message: 'Rol creado exitosamente', data: role };
   }
 
