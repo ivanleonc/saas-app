@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Put, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -217,6 +217,7 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar cambio de correo con token', description: 'Endpoint público. Activa el correo pendiente.' })
+  @ApiBody({ schema: { example: { token: 'a1b2c3d4e5f6...' } } })
   @ApiResponse({ status: 200, description: 'Correo verificado y actualizado' })
   @ApiResponse({ status: 401, description: 'Enlace inválido o expirado' })
   async verifyEmail(@Body() body: { token: string }) {
