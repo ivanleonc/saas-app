@@ -21,7 +21,7 @@ export class UserRepository {
     const result = await this.dataSource.query(
       `SELECT id, email, name, must_change_password, email_verified, password_changed_at,
               phone, avatar_url, position, document_type, document_number,
-              timezone, locale, pending_email
+              timezone, locale, pending_email, locked_until
        FROM users WHERE id = $1 AND deleted_at IS NULL`,
       [userId],
     );
@@ -78,6 +78,13 @@ export class UserRepository {
   async resetFailedLoginAttempts(userId: string): Promise<void> {
     await this.dataSource.query(
       `UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [userId],
+    );
+  }
+
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users SET last_login_at = NOW() WHERE id = $1`,
       [userId],
     );
   }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { MemberRepository } from './repositories/member.repository.js';
 import { PasswordService } from '../auth/password.service.js';
+import { RefreshTokenRepository } from '../auth/repositories/refresh-token.repository.js';
 import { EmailService } from '../email/email.service.js';
 
 const TEMP_PASSWORD_LENGTH = 12;
@@ -10,6 +11,7 @@ export class MemberService {
   constructor(
     private readonly memberRepository: MemberRepository,
     private readonly passwordService: PasswordService,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly emailService: EmailService,
   ) {}
 
@@ -46,7 +48,11 @@ export class MemberService {
       document_number?: string;
     },
   ) {
-    return this.memberRepository.updateMember(companyId, userId, data);
+    const result = await this.memberRepository.updateMember(companyId, userId, data);
+    if (data.status === 'inactive') {
+      await this.refreshTokenRepository.revokeAllForUser(userId);
+    }
+    return result;
   }
 
   async resetPassword(adminUserId: string, companyId: string, targetUserId: string) {
@@ -80,7 +86,9 @@ export class MemberService {
   }
 
   async removeMember(companyId: string, userId: string) {
-    return this.memberRepository.removeMember(companyId, userId);
+    const result = await this.memberRepository.removeMember(companyId, userId);
+    await this.refreshTokenRepository.revokeAllForUser(userId);
+    return result;
   }
 
   private generateTempPassword(): string {

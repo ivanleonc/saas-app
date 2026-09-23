@@ -72,6 +72,7 @@ export class SessionService {
     }
 
     await this.userRepository.resetFailedLoginAttempts(user.id);
+    await this.userRepository.updateLastLogin(user.id);
 
     const tenants = await this.companyService.getUserCompanies(user.id);
     const companyIds = tenants.map((t: any) => t.id);
@@ -152,6 +153,10 @@ export class SessionService {
 
     const user = await this.userRepository.findById(decoded.sub);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      throw new ForbiddenException('Cuenta desactivada o bloqueada temporalmente');
+    }
 
     const tenants = await this.companyService.getUserCompanies(user.id);
     const companyIds = tenants.map((t: any) => t.id);

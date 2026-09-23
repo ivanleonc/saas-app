@@ -41,6 +41,6 @@ import { RbacModule } from '../rbac/rbac.module.js';
     PasswordHistoryRepository,
     JwtStrategy,
   ],
-  exports: [JwtStrategy, PassportModule, PasswordService],
+  exports: [JwtStrategy, PassportModule, PasswordService, RefreshTokenRepository],
 })
 export class AuthModule {}

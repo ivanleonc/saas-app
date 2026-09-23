@@ -253,6 +253,11 @@ const handleSubmit = async () => {
 
     if (result && (result as CompanyDetail).id) {
       company.value = result as CompanyDetail;
+      const tenant = authStore.user?.tenants?.find((t: any) => t.id === authStore.activeTenantId);
+      if (tenant) {
+        tenant.name = company.value.name;
+        tenant.tax_id = company.value.tax_id;
+      }
     } else {
       await loadCompanyData();
     }
