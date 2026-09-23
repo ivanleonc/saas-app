@@ -327,10 +327,13 @@ const setTheme = (dark: boolean) => {
   applyTheme(dark);
 };
 
-const handleOrgChange = (tenantId: string) => {
+const handleOrgChange = async (tenantId: string) => {
   authStore.setActiveTenant(tenantId);
   isOrgDropdownOpen.value = false;
   orgSearchQuery.value = '';
+  // Refrescar claims (roles/permisos son por empresa y viven en el JWT)
+  await authStore.refreshTokens();
+  await authStore.fetchProfile();
   router.push(`/companies/${tenantId}/dashboard`);
 };
 
@@ -346,6 +349,9 @@ const handleCreateSubmit = async () => {
   try {
     await companyStore.createCompany({ name: createForm.name, tax_id: createForm.tax_id });
     isCreateModalOpen.value = false;
+    // Los tokens previos no traen la nueva empresa en sus claims
+    await authStore.refreshTokens();
+    await authStore.fetchProfile();
     const newTenantId = authStore.activeTenantId;
     router.push(`/companies/${newTenantId}/dashboard`);
   } catch (error) {

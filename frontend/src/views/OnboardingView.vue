@@ -72,6 +72,9 @@ const handleSubmit = async () => {
       name: form.name.trim(),
       tax_id: form.tax_id.trim() || undefined
     });
+    // Los tokens del registro no traen tenants/roles: refrescar sesión
+    await authStore.refreshTokens();
+    await authStore.fetchProfile();
     const tenantId = authStore.activeTenantId;
     if (tenantId) {
       router.push(`/companies/${tenantId}/dashboard`);
