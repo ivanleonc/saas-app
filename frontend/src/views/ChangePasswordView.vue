@@ -104,7 +104,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyPath } from '@/composables/useCompanyPath';
 import { authService } from '@/services/auth.service';
-import { checkPassword, isPasswordValid, passwordErrorMessage } from '@/utils/password';
+import { checkPassword, passwordErrorMessage } from '@/utils/password';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -157,14 +157,6 @@ const strengthLabel = computed(() => {
 });
 
 const requirements = computed(() => checkPassword(form.newPassword));
-
-const isFormValid = computed(() => {
-  if (!form.newPassword || !form.confirmPassword) return false;
-  if (!isPasswordValid(form.newPassword)) return false;
-  if (form.newPassword !== form.confirmPassword) return false;
-  if (!isTemporary.value && !form.currentPassword) return false;
-  return true;
-});
 
 const handleSubmit = async () => {
   if (!isTemporary.value && !form.currentPassword) {

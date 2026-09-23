@@ -47,10 +47,37 @@ const focusFirst = () => {
   (first || contentRef.value)?.focus();
 };
 
+const focusables = (): HTMLElement[] => {
+  if (!contentRef.value) return [];
+  return Array.from(
+    contentRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+  ).filter((el) => el.offsetParent !== null);
+};
+
 const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     event.stopPropagation();
     attemptClose();
+    return;
+  }
+
+  if (event.key !== 'Tab') return;
+  const items = focusables();
+  if (items.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement as HTMLElement | null;
+
+  if (event.shiftKey && (active === first || !contentRef.value?.contains(active))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
   }
 };
 

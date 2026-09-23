@@ -147,7 +147,7 @@
               </div>
               <template v-else>
                 <UiInput v-model="addForm.name" label="Nombre Completo" required />
-                <UiInput v-model="addForm.email" label="Correo Electronico" type="email" required />
+                <UiInput v-model="addForm.email" label="Correo Electrónico" type="email" required />
                 <UiDualListbox
                   v-model="addForm.roleIds"
                   :available="roleItems"
@@ -173,7 +173,7 @@
       </UiModal>
 
       <!-- Edit Member Modal -->
-      <UiModal v-model="isEditModalOpen" size="large">
+      <UiModal v-model="isEditModalOpen" size="large" :confirm-on-dirty="true" :dirty="isEditDirty">
         <form @submit.prevent="handleEditSubmit">
           <UiCard>
             <template #header>
@@ -476,6 +476,19 @@ const statusOptions = [
   { label: 'Inactivo', value: 'inactive' }
 ];
 
+const editSnapshot = ref('');
+
+const snapshotEditForm = () => {
+  editSnapshot.value = JSON.stringify({
+    roleIds: [...editForm.roleIds],
+    status: editForm.status,
+  });
+};
+
+const isEditDirty = computed(() =>
+  JSON.stringify({ roleIds: [...editForm.roleIds], status: editForm.status }) !== editSnapshot.value
+);
+
 const openEditModal = (member: any) => {
   if (isSelf(member.id)) {
     toast.error('No puedes modificar tu propio acceso. Pide a otro administrador que lo haga.');
@@ -494,6 +507,7 @@ const openEditModal = (member: any) => {
   }
 
   memberStore.error = null;
+  snapshotEditForm();
   isEditModalOpen.value = true;
 };
 

@@ -130,7 +130,7 @@
           </router-link>
           <router-link :to="companyPath('/audit')" class="nav-link" active-class="active" v-permission="Permissions.AUDIT.READ">
             <IconClipboardList :size="22" stroke-width="1.8" />
-            <span class="nav-label">Auditoria</span>
+            <span class="nav-label">Auditoría</span>
           </router-link>
           <router-link :to="companyPath('/settings')" class="nav-link" active-class="active">
             <IconSettings :size="22" stroke-width="1.8" />
@@ -156,7 +156,7 @@
       <form @submit.prevent="handleCreateSubmit">
         <UiCard>
           <template #header>
-            <h3 class="card-title">Nueva Organizacion</h3>
+            <h3 class="card-title">Nueva Organización</h3>
             <p class="card-description">Agrega un nuevo espacio de trabajo a tu cuenta.</p>
           </template>
           <div class="form-body">
@@ -934,6 +934,10 @@ button.search-box:hover {
     padding: var(--space-4);
   }
   .search-box {
+    padding: var(--space-1) var(--space-2);
+  }
+  .search-box .search-placeholder,
+  .search-box .search-shortcut {
     display: none;
   }
   .topbar-breadcrumb {

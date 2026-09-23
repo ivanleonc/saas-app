@@ -2,8 +2,8 @@
   <AuthenticatedLayout>
     <div class="audit-container">
       <UiPageHeader
-        title="Auditoria"
-        subtitle="Registro de todas las acciones realizadas en tu organizacion."
+        title="Auditoría"
+        subtitle="Registro de todas las acciones realizadas en tu organización."
       >
         <template #actions>
           <UiExportButton label="Exportar CSV" :fetcher="fetchExportBlob" />
@@ -24,7 +24,7 @@
             v-model="filterAction"
             type="text"
             class="filter-input"
-            placeholder="Buscar por accion..."
+            placeholder="Buscar por acción..."
             @input="debouncedFetch"
           />
         </div>
@@ -47,7 +47,7 @@
       <div v-else-if="!auditStore.isLoading && auditStore.logs.length === 0" class="empty-state">
         <IconClipboardList :size="48" />
         <p>No hay registros de auditoria</p>
-        <span>Las acciones realizadas en tu organizacion aparecerán aqui.</span>
+        <span>Las acciones realizadas en tu organización aparecerán aquí.</span>
       </div>
 
       <!-- Timeline -->

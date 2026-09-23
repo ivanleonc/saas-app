@@ -3,8 +3,8 @@
     <div class="settings-container">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Configuracion de la Empresa</h1>
-          <p class="page-subtitle">Administra la informacion general y fiscal de tu organizacion.</p>
+          <h1 class="page-title">Configuración de la Empresa</h1>
+          <p class="page-subtitle">Administra la información general y fiscal de tu organización.</p>
         </div>
         <UiButton v-permission="Permissions.COMPANY.UPDATE" @click="openEditModal" width="auto">
           <IconEdit :size="16" /> Editar Empresa
@@ -34,7 +34,7 @@
           <UiCard>
             <template #header>
               <h3 class="card-title">Editar Empresa</h3>
-              <p class="card-description">Actualiza la informacion de tu organizacion.</p>
+              <p class="card-description">Actualiza la información de tu organización.</p>
             </template>
             
             <div class="form-body">

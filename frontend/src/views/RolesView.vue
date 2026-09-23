@@ -4,7 +4,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Roles y Permisos</h1>
-          <p class="page-subtitle">Consulta y crea niveles de acceso para tu organizacion.</p>
+          <p class="page-subtitle">Consulta y crea niveles de acceso para tu organización.</p>
         </div>
         <UiButton v-permission="Permissions.ROLES.CREATE" @click="openCreateModal" width="auto">
           Crear Nuevo Rol
@@ -126,7 +126,7 @@
           <div class="form-body">
             <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
             <UiInput v-model="form.name" label="Nombre del Rol" placeholder="Ej: Gestor de Finanzas" required />
-            <UiInput v-model="form.description" label="Descripcion (Opcional)" placeholder="Que hace este rol?" />
+            <UiInput v-model="form.description" label="Descripción (Opcional)" placeholder="¿Qué hace este rol?" />
             
             <UiDualListbox
               v-model="form.permissionIds"
@@ -151,7 +151,7 @@
   </AuthenticatedLayout>
 
   <!-- Edit Modal -->
-  <UiModal v-model="isEditModalOpen" size="large">
+  <UiModal v-model="isEditModalOpen" size="large" :confirm-on-dirty="true" :dirty="isEditDirty">
     <form @submit.prevent="handleEditSubmit">
       <UiCard>
         <template #header>
@@ -185,8 +185,8 @@
       <template #header>
         <h3 class="card-title">Eliminar Rol</h3>
         <p class="card-description">
-          Estas seguro de eliminar el rol <strong>{{ deleteTarget?.name }}</strong>?
-          Esta accion no se puede deshacer.
+          ¿Estás seguro de eliminar el rol <strong>{{ deleteTarget?.name }}</strong>?
+          Esta acción no se puede deshacer.
         </p>
         <UiAlert v-if="errorMsg">{{ errorMsg }}</UiAlert>
       </template>
@@ -256,23 +256,23 @@ const allPermissionItems = computed(() =>
 );
 
 const MODULE_LABELS: Record<string, string> = {
-  auth: 'Autenticacion',
+  auth: 'Autenticación',
   users: 'Usuarios',
   roles: 'Roles',
   company: 'Empresa',
-  settings: 'Configuracion',
+  settings: 'Configuración',
   profile: 'Perfil',
   dashboard: 'Dashboard',
   branches: 'Sedes',
   audit: 'Auditoria',
-  billing: 'Facturacion',
+  billing: 'Facturación',
   notifications: 'Notificaciones',
   integrations: 'Integraciones',
 };
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  Owner: 'Control total del sistema. Gestion de usuarios, roles, facturacion y configuracion.',
-  Admin: 'Acceso extendido excepto eliminacion de usuarios y gestion de roles.',
+  Owner: 'Control total del sistema. Gestión de usuarios, roles, facturación y configuración.',
+  Admin: 'Acceso extendido excepto eliminación de usuarios y gestión de roles.',
   Viewer: 'Solo lectura. Puede consultar pero no modificar datos.',
 };
 
@@ -292,7 +292,7 @@ const MODULE_COLORS: Record<string, string> = {
 };
 
 function getRoleDescription(name: string): string {
-  return ROLE_DESCRIPTIONS[name] || 'Rol personalizado de la organizacion.';
+  return ROLE_DESCRIPTIONS[name] || 'Rol personalizado de la organización.';
 }
 
 function getModuleName(code: string): string {
@@ -319,11 +319,25 @@ function isModuleExpanded(roleId: string, module: string): boolean {
   return expandedModules.value[roleId]?.has(module) ?? true;
 }
 
+const editSnapshot = ref('');
+
+const snapshotEditForm = () => {
+  editSnapshot.value = JSON.stringify({
+    name: editForm.name,
+    permissionIds: [...editForm.permissionIds],
+  });
+};
+
+const isEditDirty = computed(() =>
+  JSON.stringify({ name: editForm.name, permissionIds: [...editForm.permissionIds] }) !== editSnapshot.value
+);
+
 function openEditModal(role: Role) {
   editForm.id = role.id;
   editForm.name = role.name;
   editForm.permissionIds = role.permissions.map((p) => p.id);
   errorMsg.value = '';
+  snapshotEditForm();
   isEditModalOpen.value = true;
 }
 
