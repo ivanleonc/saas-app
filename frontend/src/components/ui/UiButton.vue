@@ -2,14 +2,15 @@
   <button
     :type="type"
     :disabled="disabled || loading"
+    :aria-busy="loading"
     class="ui-button"
     :class="[
       `variant-${variant}`,
       { 'btn-sm': size === 'sm', 'btn-icon': icon, 'btn-auto': width === 'auto' }
     ]"
   >
-    <span v-if="loading" class="spinner"></span>
-    <slot v-else></slot>
+    <span v-if="loading" class="spinner spinner-overlay" aria-hidden="true"></span>
+    <span class="btn-label" :class="{ invisible: loading }"><slot></slot></span>
   </button>
 </template>
 
@@ -37,6 +38,7 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .ui-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -51,6 +53,20 @@ withDefaults(defineProps<Props>(), {
   gap: var(--space-2);
   border: 1px solid transparent;
   line-height: 1;
+}
+
+.btn-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.btn-label.invisible {
+  visibility: hidden;
+}
+
+.spinner-overlay {
+  position: absolute;
 }
 
 .btn-auto {

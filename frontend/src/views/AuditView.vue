@@ -1,15 +1,14 @@
 <template>
   <AuthenticatedLayout>
     <div class="audit-container">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Auditoria</h1>
-          <p class="page-subtitle">Registro de todas las acciones realizadas en tu organizacion.</p>
-        </div>
-        <UiButton variant="outline" width="auto" @click="handleExport" :loading="isExporting">
-          <IconDownload :size="16" /> Exportar CSV
-        </UiButton>
-      </div>
+      <UiPageHeader
+        title="Auditoria"
+        subtitle="Registro de todas las acciones realizadas en tu organizacion."
+      >
+        <template #actions>
+          <UiExportButton label="Exportar CSV" :fetcher="fetchExportBlob" />
+        </template>
+      </UiPageHeader>
 
       <!-- Filters -->
       <div class="filters-bar">
@@ -206,25 +205,12 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="auditStore.total > auditStore.limit" class="pagination">
-        <button
-          class="page-btn"
-          :disabled="auditStore.page <= 1"
-          @click="auditStore.setPage(auditStore.page - 1)"
-        >
-          Anterior
-        </button>
-        <span class="page-info">
-          Pagina {{ auditStore.page }} de {{ totalPages }}
-        </span>
-        <button
-          class="page-btn"
-          :disabled="auditStore.page >= totalPages"
-          @click="auditStore.setPage(auditStore.page + 1)"
-        >
-          Siguiente
-        </button>
-      </div>
+      <UiPagination
+        :page="auditStore.page"
+        :total="auditStore.total"
+        :limit="auditStore.limit"
+        @update:page="auditStore.setPage"
+      />
     </div>
   </AuthenticatedLayout>
 </template>
@@ -235,7 +221,10 @@ import { useAuditStore } from '@/stores/audit.store';
 import { useAuthStore } from '@/stores/auth.store';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
-import UiButton from '@/components/ui/UiButton.vue';
+import UiPageHeader from '@/components/ui/UiPageHeader.vue';
+import UiPagination from '@/components/ui/UiPagination.vue';
+import UiExportButton from '@/components/ui/UiExportButton.vue';
+import { auditService } from '@/services/audit.service';
 import {
   IconClipboardList,
   IconX,
@@ -245,7 +234,6 @@ import {
   IconPencil,
   IconTrash,
   IconEye,
-  IconDownload,
   IconAlertCircle,
   IconArrowRight,
 } from '@tabler/icons-vue';
@@ -259,15 +247,12 @@ const filterFrom = ref('');
 const filterTo = ref('');
 const expandedLogs = ref(new Set<string>());
 const expandedResponses = ref(new Set<string>());
-const isExporting = ref(false);
 let debounceTimer: ReturnType<typeof setTimeout>;
 
 const entityOptions = computed(() => [
   { label: 'Todas las entidades', value: '' },
   ...auditStore.entityTypes.map((t) => ({ label: t, value: t })),
 ]);
-
-const totalPages = computed(() => Math.ceil(auditStore.total / auditStore.limit));
 
 const hasActiveFilters = computed(() =>
   filterEntity.value || filterAction.value || filterFrom.value || filterTo.value
@@ -295,21 +280,13 @@ function clearFilters() {
   auditStore.resetFilters();
 }
 
-async function handleExport() {
-  isExporting.value = true;
-  try {
-    const { auditService } = await import('@/services/audit.service');
-    await auditService.exportCsv({
-      entityType: filterEntity.value || undefined,
-      action: filterAction.value || undefined,
-      from: filterFrom.value || undefined,
-      to: filterTo.value || undefined,
-    });
-  } catch (error) {
-    console.error('Error exportando:', error);
-  } finally {
-    isExporting.value = false;
-  }
+function fetchExportBlob() {
+  return auditService.fetchCsvBlob({
+    entityType: filterEntity.value || undefined,
+    action: filterAction.value || undefined,
+    from: filterFrom.value || undefined,
+    to: filterTo.value || undefined,
+  });
 }
 
 function toggleChanges(id: string) {
@@ -887,40 +864,6 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-/* Pagination */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4) 0;
-}
-
-.page-btn {
-  height: 2rem;
-  padding: 0 var(--space-4);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-card);
-  color: var(--text-main);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled) {
-  background: var(--text-main);
-  color: var(--bg-card);
-  border-color: var(--text-main);
-}
-.page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
 
 @media (max-width: 768px) {
   .filters-bar { flex-direction: column; align-items: stretch; }

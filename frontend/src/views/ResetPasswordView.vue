@@ -1,7 +1,8 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { authService } from '@/services/auth.service';
+import { passwordErrorMessage } from '@/utils/password';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';
@@ -19,16 +20,32 @@ const passwordConfirm = ref('');
 const isLoading = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
+let redirectTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   if (!token.value || !email.value) {
-    errorMsg.value = 'Enlace de recuperacion invalido o incompleto.';
+    errorMsg.value = 'Enlace de recuperación inválido o incompleto.';
   }
 });
 
+onUnmounted(() => {
+  if (redirectTimer) clearTimeout(redirectTimer);
+});
+
+const goToLogin = () => {
+  if (redirectTimer) clearTimeout(redirectTimer);
+  router.push('/login');
+};
+
 const handleSubmit = async () => {
   if (password.value !== passwordConfirm.value) {
-    errorMsg.value = 'Las contrasenas no coinciden.';
+    errorMsg.value = 'Las contraseñas no coinciden.';
+    return;
+  }
+
+  const passwordError = passwordErrorMessage(password.value);
+  if (passwordError) {
+    errorMsg.value = passwordError;
     return;
   }
 
@@ -37,10 +54,10 @@ const handleSubmit = async () => {
 
   try {
     await authService.resetPassword(email.value, token.value, password.value);
-    successMsg.value = 'Tu contrasena ha sido actualizada. Redirigiendo...';
-    setTimeout(() => router.push('/login'), 3000);
+    successMsg.value = 'Tu contraseña ha sido actualizada. Redirigiendo...';
+    redirectTimer = setTimeout(() => router.push('/login'), 3000);
   } catch (error: any) {
-    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'El enlace caduco o es invalido.';
+    errorMsg.value = error.response?.data?.message || error.response?.data?.error || 'El enlace caducó o es inválido.';
   } finally {
     isLoading.value = false;
   }
@@ -52,8 +69,8 @@ const handleSubmit = async () => {
     <form @submit.prevent="handleSubmit" class="auth-form">
       <UiCard>
         <template #header>
-          <h2 class="auth-title">Crear Nueva Contrasena</h2>
-          <p class="auth-description">Ingresa una contrasena segura para tu cuenta.</p>
+          <h2 class="auth-title">Crear Nueva Contraseña</h2>
+          <p class="auth-description">Ingresa una contraseña segura para tu cuenta.</p>
         </template>
 
         <div class="form-body">
@@ -63,26 +80,31 @@ const handleSubmit = async () => {
           <template v-if="!successMsg && token && email">
             <UiInput
               v-model="password"
-              label="Nueva Contrasena"
+              label="Nueva Contraseña"
               type="password"
+              autocomplete="new-password"
               required
             />
             <UiInput
               v-model="passwordConfirm"
-              label="Confirmar Contrasena"
+              label="Confirmar Contraseña"
               type="password"
+              autocomplete="new-password"
               required
             />
           </template>
         </div>
 
         <template #footer>
-          <UiButton v-if="!successMsg && token && email" type="submit" :loading="isLoading">
-            Actualizar Contrasena
+          <UiButton v-if="successMsg" type="button" @click="goToLogin">
+            Ir al inicio de sesión ahora
+          </UiButton>
+          <UiButton v-else-if="token && email" type="submit" :loading="isLoading">
+            Actualizar Contraseña
           </UiButton>
 
           <div class="auth-footer-links">
-            <p><router-link to="/login">Ir al Login</router-link></p>
+            <p><router-link to="/login">Volver al inicio de sesión</router-link></p>
           </div>
         </template>
       </UiCard>

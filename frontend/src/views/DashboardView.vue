@@ -20,52 +20,60 @@
 
       <template v-else>
         <div class="metrics-grid">
-          <DashboardMetricCard 
-            title="Miembros Activos" 
-            :value="activeMembers"
-            :trendText="`De un total de ${totalMembers}`"
-            trendType="positive"
-            color="blue"
-          >
-            <template #icon>
-              <IconUsers :size="20" stroke-width="2" />
-            </template>
-          </DashboardMetricCard>
+          <router-link :to="companyPath('/members')" class="metric-link" v-permission="Permissions.USERS.READ">
+            <DashboardMetricCard
+              title="Miembros Activos"
+              :value="activeMembers"
+              :trendText="`De un total de ${totalMembers}`"
+              trendType="positive"
+              color="blue"
+            >
+              <template #icon>
+                <IconUsers :size="20" stroke-width="2" />
+              </template>
+            </DashboardMetricCard>
+          </router-link>
 
-          <DashboardMetricCard 
-            title="Roles de Acceso" 
-            :value="totalRoles"
-            trendText="Niveles de permisos"
-            color="purple"
-          >
-            <template #icon>
-              <IconShieldLock :size="20" stroke-width="2" />
-            </template>
-          </DashboardMetricCard>
+          <router-link :to="companyPath('/roles')" class="metric-link" v-permission="Permissions.ROLES.READ">
+            <DashboardMetricCard
+              title="Roles de Acceso"
+              :value="totalRoles"
+              trendText="Niveles de permisos"
+              color="purple"
+            >
+              <template #icon>
+                <IconShieldLock :size="20" stroke-width="2" />
+              </template>
+            </DashboardMetricCard>
+          </router-link>
 
-          <DashboardMetricCard 
-            title="Empresa Actual" 
-            :value="activeCompanyName"
-            :trendText="activeCompanyRole"
-            color="green"
-            isText
-          >
-            <template #icon>
-              <IconBuildingStore :size="20" stroke-width="2" />
-            </template>
-          </DashboardMetricCard>
+          <router-link :to="companyPath('/settings')" class="metric-link" v-permission="Permissions.SETTINGS.READ">
+            <DashboardMetricCard
+              title="Empresa Actual"
+              :value="activeCompanyName"
+              :trendText="activeCompanyRole"
+              color="green"
+              isText
+            >
+              <template #icon>
+                <IconBuildingStore :size="20" stroke-width="2" />
+              </template>
+            </DashboardMetricCard>
+          </router-link>
 
-          <DashboardMetricCard 
-            title="Estado" 
-            :value="authStore.user?.email_verified ? 'Verificada' : 'Pendiente'"
-            trendText="Cuenta de email"
-            :color="authStore.user?.email_verified ? 'green' : 'orange'"
-            isText
-          >
-            <template #icon>
-              <IconMail :size="20" stroke-width="2" />
-            </template>
-          </DashboardMetricCard>
+          <router-link :to="companyPath('/profile')" class="metric-link">
+            <DashboardMetricCard
+              title="Estado"
+              :value="authStore.user?.email_verified ? 'Verificada' : 'Pendiente'"
+              trendText="Cuenta de email"
+              :color="authStore.user?.email_verified ? 'green' : 'orange'"
+              isText
+            >
+              <template #icon>
+                <IconMail :size="20" stroke-width="2" />
+              </template>
+            </DashboardMetricCard>
+          </router-link>
         </div>
 
         <div class="quick-actions">
@@ -189,6 +197,17 @@ const activeCompanyRole = computed(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-4);
+}
+
+.metric-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-radius: var(--radius-lg);
+}
+.metric-link .metric-card {
+  cursor: pointer;
+  height: 100%;
 }
 
 .actions-grid {

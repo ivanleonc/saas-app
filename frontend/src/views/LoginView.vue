@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -16,10 +16,23 @@ const form = reactive({
   password: ''
 });
 
+const sessionExpired = ref(false);
+
+onMounted(() => {
+  if (sessionStorage.getItem('saas_session_expired') === '1') {
+    sessionStorage.removeItem('saas_session_expired');
+    sessionExpired.value = true;
+  }
+});
+
 const handleLogin = async () => {
   try {
-    await authStore.login({ email: form.email, password: form.password });
+    await authStore.login({ email: form.email.trim(), password: form.password });
     const tenantId = authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
+    if (!tenantId) {
+      router.push({ name: 'Onboarding' });
+      return;
+    }
     router.push(`/companies/${tenantId}/dashboard`);
   } catch (error) {
     // Error manejado por Pinia
@@ -37,8 +50,11 @@ const handleLogin = async () => {
         </template>
 
         <div class="form-body">
-          <UiAlert v-if="authStore.error">
+          <UiAlert v-if="authStore.error" type="error">
             {{ authStore.error }}
+          </UiAlert>
+          <UiAlert v-if="sessionExpired && !authStore.error" type="info">
+            Tu sesión expiró. Inicia sesión de nuevo.
           </UiAlert>
 
           <UiInput
@@ -46,6 +62,8 @@ const handleLogin = async () => {
             label="Correo electrónico"
             type="email"
             placeholder="nombre@empresa.com"
+            autocomplete="email"
+            name="email"
             required
           />
 
@@ -53,6 +71,8 @@ const handleLogin = async () => {
             v-model="form.password"
             label="Contraseña"
             type="password"
+            autocomplete="current-password"
+            name="password"
             required
           />
         </div>

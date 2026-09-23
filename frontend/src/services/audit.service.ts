@@ -29,13 +29,13 @@ export const auditService = {
     return response.data;
   },
 
-  async exportCsv(params: {
+  async fetchCsvBlob(params: {
     entityType?: string;
     action?: string;
     userId?: string;
     from?: string;
     to?: string;
-  }): Promise<void> {
+  }): Promise<{ blob: Blob; filename: string }> {
     const query = new URLSearchParams();
     if (params.entityType) query.set('entityType', params.entityType);
     if (params.action) query.set('action', params.action);
@@ -48,10 +48,22 @@ export const auditService = {
     });
 
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const filename = `auditoria_${new Date().toISOString().split('T')[0]}.csv`;
+    return { blob, filename };
+  },
+
+  async exportCsv(params: {
+    entityType?: string;
+    action?: string;
+    userId?: string;
+    from?: string;
+    to?: string;
+  }): Promise<void> {
+    const { blob, filename } = await this.fetchCsvBlob(params);
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `auditoria_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = filename;
     link.click();
     window.URL.revokeObjectURL(url);
   },

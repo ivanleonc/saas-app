@@ -1,24 +1,20 @@
 <template>
   <AuthenticatedLayout>
     <div class="members-container">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Miembros del Equipo</h1>
-          <p class="page-subtitle">Gestiona los accesos y roles de los usuarios en tu organización.</p>
-        </div>
-        <UiButton v-permission="Permissions.USERS.CREATE" @click="openAddModal" width="auto">
-          <IconPlus :size="16" /> Nuevo Miembro
-        </UiButton>
-      </div>
+      <UiPageHeader
+        title="Miembros del Equipo"
+        subtitle="Gestiona los accesos y roles de los usuarios en tu organización."
+      >
+        <template #actions>
+          <UiButton v-permission="Permissions.USERS.CREATE" @click="openAddModal" width="auto">
+            <IconPlus :size="16" /> Nuevo Miembro
+          </UiButton>
+        </template>
+      </UiPageHeader>
 
       <div class="filters-bar">
         <div class="filter-group filter-group-grow">
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="filter-input"
-            placeholder="Buscar por nombre o email..."
-          />
+          <UiSearchInput v-model="searchQuery" placeholder="Buscar por nombre o email..." />
         </div>
         <div class="filter-group">
           <UiSelect v-model="filterRole" :options="roleFilterOptions" />
@@ -48,10 +44,10 @@
                 <td>
                   <div class="user-cell">
                     <div class="user-avatar">{{ getInitials(member.name) }}</div>
-                    <span class="font-medium">{{ member.name }}</span>
+                    <span class="font-medium truncate" :title="member.name">{{ member.name }}</span>
                   </div>
                 </td>
-                <td>{{ member.email }}</td>
+                <td class="truncate" :title="member.email">{{ member.email }}</td>
                 <td>
                   <div class="roles-cell">
                     <span v-for="role in member.roles" :key="role" class="badge-role"
@@ -341,6 +337,8 @@ import UiSelect from '@/components/ui/UiSelect.vue';
 import UiDualListbox from '@/components/ui/UiDualListbox.vue';
 import UiDropdown from '@/components/ui/UiDropdown.vue';
 import UiDropdownItem from '@/components/ui/UiDropdownItem.vue';
+import UiPageHeader from '@/components/ui/UiPageHeader.vue';
+import UiSearchInput from '@/components/ui/UiSearchInput.vue';
 import { useToast } from '@/composables/useToast';
 import { IconCrown, IconPlus, IconDotsVertical, IconPencil, IconTrash, IconKey, IconMail, IconCopy, IconUsers, IconX } from '@tabler/icons-vue';
 

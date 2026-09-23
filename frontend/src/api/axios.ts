@@ -72,6 +72,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('saas_user');
         localStorage.removeItem('saas_active_tenant');
         if (window.location.pathname !== '/login') {
+          sessionStorage.setItem('saas_session_expired', '1');
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -95,6 +96,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('saas_user');
         localStorage.removeItem('saas_active_tenant');
         if (window.location.pathname !== '/login') {
+          sessionStorage.setItem('saas_session_expired', '1');
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);

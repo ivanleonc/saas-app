@@ -1,7 +1,15 @@
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="modal-overlay" @click.self="close">
-      <div class="modal-content" :class="`modal-${size}`">
+    <div v-if="isOpen" class="modal-overlay" @click.self="attemptClose">
+      <div
+        ref="contentRef"
+        class="modal-content"
+        :class="`modal-${size}`"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="label"
+        tabindex="-1"
+      >
         <slot></slot>
       </div>
     </div>
@@ -9,19 +17,73 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
+
 interface Props {
   size?: 'small' | 'default' | 'large';
+  label?: string;
+  confirmOnDirty?: boolean;
+  dirty?: boolean;
+  confirmMessage?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   size: 'default',
+  label: 'Diálogo',
+  confirmOnDirty: false,
+  dirty: false,
+  confirmMessage: 'Tienes cambios sin guardar. ¿Cerrar de todos modos?',
 });
 
 const isOpen = defineModel<boolean>({ default: false });
+const contentRef = ref<HTMLElement | null>(null);
+let lastFocused: HTMLElement | null = null;
+
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+const focusFirst = () => {
+  const first = contentRef.value?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+  (first || contentRef.value)?.focus();
+};
+
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+    attemptClose();
+  }
+};
 
 const close = () => {
   isOpen.value = false;
 };
+
+const attemptClose = () => {
+  if (props.confirmOnDirty && props.dirty) {
+    if (!window.confirm(props.confirmMessage)) return;
+  }
+  close();
+};
+
+watch(isOpen, (value) => {
+  if (value) {
+    lastFocused = document.activeElement as HTMLElement | null;
+    nextTick(() => {
+      focusFirst();
+      window.addEventListener('keydown', onKeydown, true);
+    });
+  } else {
+    window.removeEventListener('keydown', onKeydown, true);
+    lastFocused?.focus?.();
+    lastFocused = null;
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown, true);
+});
+
+defineExpose({ close, attemptClose });
 </script>
 
 <style scoped>

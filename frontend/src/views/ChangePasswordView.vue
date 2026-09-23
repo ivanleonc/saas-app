@@ -32,12 +32,14 @@
               v-model="form.currentPassword"
               label="Contraseña Actual"
               type="password"
+              autocomplete="current-password"
               required
             />
             <UiInput
               v-model="form.newPassword"
               label="Nueva Contraseña"
               type="password"
+              autocomplete="new-password"
               required
             />
 
@@ -73,6 +75,7 @@
               v-model="form.confirmPassword"
               label="Confirmar Nueva Contraseña"
               type="password"
+              autocomplete="new-password"
               required
             />
 
@@ -85,7 +88,6 @@
             <UiButton
               type="submit"
               :loading="isLoading"
-              :disabled="!isFormValid"
             >
               {{ isTemporary ? 'Establecer Contraseña' : 'Actualizar Contraseña' }}
             </UiButton>
@@ -102,6 +104,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyPath } from '@/composables/useCompanyPath';
 import { authService } from '@/services/auth.service';
+import { checkPassword, isPasswordValid, passwordErrorMessage } from '@/utils/password';
 
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -153,32 +156,30 @@ const strengthLabel = computed(() => {
   return 'Fuerte';
 });
 
-const requirements = computed(() => {
-  const pw = form.newPassword;
-  return {
-    length: pw.length >= 6,
-    uppercase: /[A-Z]/.test(pw),
-    lowercase: /[a-z]/.test(pw),
-    number: /[0-9]/.test(pw),
-  };
-});
+const requirements = computed(() => checkPassword(form.newPassword));
 
 const isFormValid = computed(() => {
   if (!form.newPassword || !form.confirmPassword) return false;
-  if (form.newPassword.length < 6) return false;
+  if (!isPasswordValid(form.newPassword)) return false;
   if (form.newPassword !== form.confirmPassword) return false;
   if (!isTemporary.value && !form.currentPassword) return false;
   return true;
 });
 
 const handleSubmit = async () => {
+  if (!isTemporary.value && !form.currentPassword) {
+    errorMsg.value = 'Ingresa tu contraseña actual.';
+    return;
+  }
+
   if (form.newPassword !== form.confirmPassword) {
     errorMsg.value = 'Las contraseñas no coinciden.';
     return;
   }
 
-  if (form.newPassword.length < 6) {
-    errorMsg.value = 'La contraseña debe tener al menos 6 caracteres.';
+  const passwordError = passwordErrorMessage(form.newPassword);
+  if (passwordError) {
+    errorMsg.value = passwordError;
     return;
   }
 

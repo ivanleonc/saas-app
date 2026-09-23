@@ -12,15 +12,20 @@ const isLoading = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
 
+const useAnotherEmail = () => {
+  successMsg.value = '';
+  errorMsg.value = '';
+  email.value = '';
+};
+
 const handleSubmit = async () => {
   isLoading.value = true;
   errorMsg.value = '';
   successMsg.value = '';
-  
+
   try {
-    await authService.forgotPassword(email.value);
-    successMsg.value = 'Se han enviado las instrucciones a tu correo.';
-    email.value = '';
+    await authService.forgotPassword(email.value.trim());
+    successMsg.value = 'Se han enviado las instrucciones a tu correo. Revisa también tu carpeta de spam.';
   } catch (error: any) {
     errorMsg.value = error.response?.data?.error || 'Error procesando la solicitud.';
   } finally {
@@ -48,6 +53,7 @@ const handleSubmit = async () => {
             label="Correo electrónico"
             type="email"
             placeholder="nombre@empresa.com"
+            autocomplete="email"
             required
           />
         </div>
@@ -56,9 +62,13 @@ const handleSubmit = async () => {
           <UiButton v-if="!successMsg" type="submit" :loading="isLoading">
             Enviar Instrucciones
           </UiButton>
-          
+          <UiButton v-else type="button" variant="outline" @click="useAnotherEmail">
+            Usar otro correo
+          </UiButton>
+
           <div class="auth-footer-links">
             <p><router-link to="/login">Volver al inicio de sesión</router-link></p>
+            <p>¿No tienes cuenta? <router-link to="/register">Regístrate</router-link></p>
           </div>
         </template>
       </UiCard>

@@ -32,6 +32,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresGuest: true },
   },
   {
+    path: '/onboarding',
+    name: 'Onboarding',
+    component: () => import('@/views/OnboardingView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/companies/:companyId',
     redirect: (to) => `/companies/${to.params.companyId}/dashboard`,
   },
@@ -115,7 +121,7 @@ router.beforeEach((to) => {
     if (tenantId) {
       return { path: `/companies/${tenantId}/dashboard` };
     }
-    return { name: 'Login' };
+    return { name: 'Onboarding' };
   }
 
   // Sync activeTenantId with URL param
@@ -131,8 +137,18 @@ router.beforeEach((to) => {
     }
   }
 
+  // Users without any organization go to onboarding first
+  if (
+    isAuthenticated &&
+    (authStore.user?.tenants?.length || 0) === 0 &&
+    to.name !== 'Onboarding' &&
+    to.meta.requiresAuth
+  ) {
+    return { name: 'Onboarding' };
+  }
+
   // Force password change — block all pages except ChangePassword
-  if (isAuthenticated && authStore.user?.must_change_password && to.name !== 'ChangePassword') {
+  if (isAuthenticated && authStore.user?.must_change_password && to.name !== 'ChangePassword' && to.name !== 'Onboarding') {
     const tenantId = companyId || authStore.activeTenantId || authStore.user?.tenants?.[0]?.id;
     if (tenantId) {
       return { path: `/companies/${tenantId}/change-password` };

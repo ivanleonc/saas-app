@@ -1,24 +1,20 @@
 <template>
   <AuthenticatedLayout>
     <div class="branches-container">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Sedes</h1>
-          <p class="page-subtitle">Gestiona las ubicaciones de tu empresa.</p>
-        </div>
-        <UiButton v-permission="Permissions.BRANCHES.CREATE" @click="openCreateModal" width="auto">
-          <IconPlus :size="16" /> Nueva Sede
-        </UiButton>
-      </div>
+      <UiPageHeader
+        title="Sedes"
+        subtitle="Gestiona las ubicaciones de tu empresa."
+      >
+        <template #actions>
+          <UiButton v-permission="Permissions.BRANCHES.CREATE" @click="openCreateModal" width="auto">
+            <IconPlus :size="16" /> Nueva Sede
+          </UiButton>
+        </template>
+      </UiPageHeader>
 
       <div class="filters-bar">
         <div class="filter-group filter-group-grow">
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="filter-input"
-            placeholder="Buscar por nombre o ciudad..."
-          />
+          <UiSearchInput v-model="searchQuery" placeholder="Buscar por nombre o ciudad..." />
         </div>
         <div class="filter-group">
           <UiSelect v-model="filterStatus" :options="statusFilterOptions" />
@@ -29,89 +25,70 @@
       </div>
 
       <div class="table-section">
-        <div class="table-wrapper">
-          <table v-if="!isInitialLoading && filteredBranches.length > 0" class="ui-table">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Ubicación</th>
-                <th>Contacto</th>
-                <th>Estado</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="branch in filteredBranches" :key="branch.id">
-                <td>
-                  <div class="user-cell">
-                    <div class="branch-avatar">
-                      <IconBuildingCommunity :size="16" stroke-width="1.8" />
-                    </div>
-                    <span class="font-medium">{{ branch.name }}</span>
-                  </div>
-                </td>
-                <td>
-                  <span v-if="branch.city || branch.state || branch.country">
-                    {{ [branch.city, branch.state, branch.country].filter(Boolean).join(', ') }}
-                  </span>
-                  <span v-else class="text-muted">Sin ubicación</span>
-                </td>
-                <td>
-                  <span v-if="branch.phone || branch.email">
-                    {{ branch.phone || branch.email }}
-                  </span>
-                  <span v-else class="text-muted">Sin contacto</span>
-                </td>
-                <td>
-                  <span class="badge-status" :class="branch.is_active ? 'active' : 'inactive'">
-                    {{ branch.is_active ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="row-actions" v-permission="Permissions.BRANCHES.UPDATE">
-                    <UiDropdown align="end" label="Acciones de la sede">
-                      <template #trigger="{ toggle }">
-                        <button class="dots-btn" @click.stop="toggle" aria-haspopup="menu" :aria-label="`Acciones para ${branch.name}`">
-                          <IconDotsVertical :size="16" stroke-width="1.8" />
-                        </button>
-                      </template>
-                      <template #default>
-                        <UiDropdownItem @click="openEditModal(branch)">
-                          <IconPencil :size="14" stroke-width="1.8" />
-                          <span>Editar</span>
-                        </UiDropdownItem>
-                        <UiDropdownItem @click="handleToggleActive(branch)">
-                          <IconSwitchHorizontal :size="14" stroke-width="1.8" />
-                          <span>{{ branch.is_active ? 'Desactivar' : 'Activar' }}</span>
-                        </UiDropdownItem>
-                        <div class="ui-dropdown-divider" role="separator"></div>
-                        <UiDropdownItem danger @click="openDeleteModal(branch)" v-permission="Permissions.BRANCHES.DELETE">
-                          <IconTrash :size="14" stroke-width="1.8" />
-                          <span>Eliminar</span>
-                        </UiDropdownItem>
-                      </template>
-                    </UiDropdown>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div v-else-if="isInitialLoading" class="skeleton-list" aria-label="Cargando sedes">
-            <div v-for="n in 5" :key="n" class="skeleton-row">
-              <div class="skeleton skeleton-avatar"></div>
-              <div class="skeleton skeleton-text"></div>
-              <div class="skeleton skeleton-text short"></div>
-              <div class="skeleton skeleton-badge"></div>
+        <UiDataTable
+          :columns="branchColumns"
+          :rows="filteredBranches"
+          :loading="isInitialLoading"
+          :empty-title="branchStore.branches.length === 0 ? 'No hay sedes todavía' : 'Sin resultados'"
+          :empty-description="branchStore.branches.length === 0
+            ? 'Agrega tu primera ubicación para empezar.'
+            : 'Prueba con otra búsqueda o limpia los filtros.'"
+        >
+          <template #cell-name="{ row }">
+            <div class="user-cell">
+              <div class="branch-avatar">
+                <IconBuildingCommunity :size="16" stroke-width="1.8" />
+              </div>
+              <span class="font-medium truncate" :title="row.name">{{ row.name }}</span>
             </div>
-          </div>
-
-          <div v-else class="empty-state">
+          </template>
+          <template #cell-location="{ row }">
+            <span v-if="row.city || row.state || row.country">
+              {{ [row.city, row.state, row.country].filter(Boolean).join(', ') }}
+            </span>
+            <span v-else class="text-muted">Sin ubicación</span>
+          </template>
+          <template #cell-contact="{ row }">
+            <span v-if="row.phone || row.email">
+              {{ row.phone || row.email }}
+            </span>
+            <span v-else class="text-muted">Sin contacto</span>
+          </template>
+          <template #cell-status="{ row }">
+            <span class="badge-status" :class="row.is_active ? 'active' : 'inactive'">
+              {{ row.is_active ? 'Activa' : 'Inactiva' }}
+            </span>
+          </template>
+          <template #cell-actions="{ row }">
+            <div class="row-actions" v-permission="Permissions.BRANCHES.UPDATE">
+              <UiDropdown align="end" label="Acciones de la sede">
+                <template #trigger="{ toggle }">
+                  <button class="dots-btn" @click.stop="toggle" aria-haspopup="menu" :aria-label="`Acciones para ${row.name}`">
+                    <IconDotsVertical :size="16" stroke-width="1.8" />
+                  </button>
+                </template>
+                <template #default>
+                  <UiDropdownItem @click="openEditModal(row)">
+                    <IconPencil :size="14" stroke-width="1.8" />
+                    <span>Editar</span>
+                  </UiDropdownItem>
+                  <UiDropdownItem @click="handleToggleActive(row)">
+                    <IconSwitchHorizontal :size="14" stroke-width="1.8" />
+                    <span>{{ row.is_active ? 'Desactivar' : 'Activar' }}</span>
+                  </UiDropdownItem>
+                  <div class="ui-dropdown-divider" role="separator"></div>
+                  <UiDropdownItem danger @click="openDeleteModal(row)" v-permission="Permissions.BRANCHES.DELETE">
+                    <IconTrash :size="14" stroke-width="1.8" />
+                    <span>Eliminar</span>
+                  </UiDropdownItem>
+                </template>
+              </UiDropdown>
+            </div>
+          </template>
+          <template #empty-icon>
             <IconBuildingCommunity :size="48" stroke-width="1.5" />
-            <p>{{ branchStore.branches.length === 0 ? 'No hay sedes todavía' : 'Sin resultados' }}</p>
-            <span>{{ branchStore.branches.length === 0
-              ? 'Agrega tu primera ubicación para empezar.'
-              : 'Prueba con otra búsqueda o limpia los filtros.' }}</span>
+          </template>
+          <template #empty-action>
             <UiButton
               v-if="branchStore.branches.length === 0"
               v-permission="Permissions.BRANCHES.CREATE"
@@ -120,12 +97,12 @@
             >
               <IconPlus :size="16" /> Nueva Sede
             </UiButton>
-          </div>
-        </div>
+          </template>
+        </UiDataTable>
       </div>
 
       <!-- Create/Edit Modal -->
-      <UiModal v-model="isFormModalOpen">
+      <UiModal v-model="isFormModalOpen" :confirm-on-dirty="true" :dirty="isFormDirty">
         <form @submit.prevent="handleSubmit">
           <UiCard>
             <template #header>
@@ -204,6 +181,9 @@ import UiModal from '@/components/ui/UiModal.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
 import UiDropdown from '@/components/ui/UiDropdown.vue';
 import UiDropdownItem from '@/components/ui/UiDropdownItem.vue';
+import UiPageHeader from '@/components/ui/UiPageHeader.vue';
+import UiDataTable from '@/components/ui/UiDataTable.vue';
+import UiSearchInput from '@/components/ui/UiSearchInput.vue';
 import { useToast } from '@/composables/useToast';
 import {
   IconPlus,
@@ -250,6 +230,14 @@ const clearFilters = () => {
 
 const isInitialLoading = computed(() => branchStore.isLoading && branchStore.branches.length === 0);
 
+const branchColumns = [
+  { key: 'name', label: 'Nombre' },
+  { key: 'location', label: 'Ubicación' },
+  { key: 'contact', label: 'Contacto' },
+  { key: 'status', label: 'Estado' },
+  { key: 'actions', label: '', align: 'right' as const },
+];
+
 const handleToggleActive = async (branch: Branch) => {
   try {
     await branchStore.updateBranch(branch.id, { is_active: !branch.is_active });
@@ -280,11 +268,20 @@ const form = reactive({
   email: '',
 });
 
+const formSnapshot = ref('');
+
+const snapshotForm = () => {
+  formSnapshot.value = JSON.stringify({ ...form });
+};
+
+const isFormDirty = computed(() => JSON.stringify({ ...form }) !== formSnapshot.value);
+
 const openCreateModal = () => {
   editingBranch.value = null;
   form.name = ''; form.address = ''; form.city = ''; form.state = '';
   form.country = ''; form.postal_code = ''; form.phone = ''; form.email = '';
   formError.value = '';
+  snapshotForm();
   isFormModalOpen.value = true;
 };
 
@@ -299,6 +296,7 @@ const openEditModal = (branch: Branch) => {
   form.phone = branch.phone || '';
   form.email = branch.email || '';
   formError.value = '';
+  snapshotForm();
   isFormModalOpen.value = true;
 };
 

@@ -14,7 +14,6 @@
           <div class="org-trigger" @click="isOrgDropdownOpen = !isOrgDropdownOpen">
             <IconBuildingCommunity :size="16" stroke-width="1.8" />
             <span class="org-trigger-name">{{ activeOrg?.name || 'Mi Empresa' }}</span>
-            <span class="badge-free">FREE</span>
             <IconArrowsUpDown :size="14" stroke-width="1.8" class="org-arrows" />
           </div>
 
@@ -22,7 +21,7 @@
           <div v-if="isOrgDropdownOpen" class="org-dropdown">
             <div class="org-dropdown-search">
               <IconSearch :size="14" />
-              <input type="text" placeholder="Find organization..." v-model="orgSearchQuery" autofocus />
+              <input type="text" placeholder="Buscar organización..." v-model="orgSearchQuery" autofocus />
             </div>
             <div class="dropdown-divider"></div>
             <div
@@ -38,7 +37,7 @@
             <div class="dropdown-divider"></div>
             <div class="dropdown-item create-action" @click="openCreateModal">
               <IconPlus :size="14" />
-              <span>New organization</span>
+              <span>Nueva organización</span>
             </div>
           </div>
         </div>
@@ -57,11 +56,11 @@
       </div>
 
       <div class="topbar-right">
-        <div class="search-box">
+        <button type="button" class="search-box search-box-button" @click="isPaletteOpen = true" aria-label="Búsqueda rápida">
           <IconSearch :size="14" />
-          <input type="text" placeholder="Search..." />
+          <span class="search-placeholder">Buscar...</span>
           <span class="search-shortcut">Ctrl K</span>
-        </div>
+        </button>
 
         <div class="user-menu">
           <button class="user-trigger" @click="isUserDropdownOpen = !isUserDropdownOpen">
@@ -93,7 +92,7 @@
             <div class="dropdown-divider"></div>
             <div class="dropdown-item danger" @click="handleLogout">
               <IconLogout :size="16" />
-              <span>Cerrar Sesion</span>
+              <span>Cerrar Sesión</span>
             </div>
           </div>
         </div>
@@ -115,11 +114,11 @@
         <nav class="sidebar-nav">
           <router-link :to="companyPath('/dashboard')" class="nav-link" exact-active-class="active">
             <IconLayoutDashboard :size="22" stroke-width="1.8" />
-            <span class="nav-label">Projects</span>
+            <span class="nav-label">Panel</span>
           </router-link>
           <router-link :to="companyPath('/members')" class="nav-link" active-class="active">
             <IconUsers :size="22" stroke-width="1.8" />
-            <span class="nav-label">Team</span>
+            <span class="nav-label">Equipo</span>
           </router-link>
           <router-link :to="companyPath('/branches')" class="nav-link" active-class="active" v-permission="Permissions.BRANCHES.READ">
             <IconBuildingCommunity :size="22" stroke-width="1.8" />
@@ -135,7 +134,7 @@
           </router-link>
           <router-link :to="companyPath('/settings')" class="nav-link" active-class="active">
             <IconSettings :size="22" stroke-width="1.8" />
-            <span class="nav-label">Settings</span>
+            <span class="nav-label">Ajustes</span>
           </router-link>
         </nav>
 
@@ -143,7 +142,7 @@
           <button class="nav-link" @click="toggleTheme">
             <IconSun v-if="!isDarkMode" :size="22" stroke-width="1.8" />
             <IconMoon v-else :size="22" stroke-width="1.8" />
-            <span class="nav-label">{{ isDarkMode ? 'Light' : 'Dark' }}</span>
+            <span class="nav-label">{{ isDarkMode ? 'Claro' : 'Oscuro' }}</span>
           </button>
         </div>
       </aside>
@@ -174,6 +173,8 @@
         </UiCard>
       </form>
     </UiModal>
+
+    <CommandPalette v-model="isPaletteOpen" />
   </div>
 </template>
 
@@ -187,7 +188,7 @@ let sidebarHoverTimeout: ReturnType<typeof setTimeout> | null = null;
 </script>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCompanyStore } from '@/stores/company.store';
@@ -199,6 +200,7 @@ import UiCard from '@/components/ui/UiCard.vue';
 import UiInput from '@/components/ui/UiInput.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiAlert from '@/components/ui/UiAlert.vue';
+import CommandPalette from '@/components/CommandPalette.vue';
 import {
   IconBolt,
   IconLayoutDashboard,
@@ -230,8 +232,16 @@ const { companyId, companyPath } = useCompanyPath();
 const isOrgDropdownOpen = ref(false);
 const isUserDropdownOpen = ref(false);
 const isCreateModalOpen = ref(false);
+const isPaletteOpen = ref(false);
 const orgSearchQuery = ref('');
 const createForm = reactive({ name: '', tax_id: '' });
+
+const onGlobalKeydown = (event: KeyboardEvent) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    isPaletteOpen.value = !isPaletteOpen.value;
+  }
+};
 
 const isMobileSidebarOpen = ref(false);
 
@@ -242,6 +252,14 @@ const toggleMobileSidebar = () => {
 // Close mobile sidebar on route change
 watch(() => route.path, () => {
   isMobileSidebarOpen.value = false;
+});
+
+onMounted(() => {
+  window.addEventListener('keydown', onGlobalKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onGlobalKeydown);
 });
 
 // Controladores súper suaves para el Sidebar
@@ -275,14 +293,31 @@ const filteredTenants = computed(() => {
   return (authStore.user?.tenants || []).filter((t: any) => t.name.toLowerCase().includes(q));
 });
 
+const SECTION_LABELS: Record<string, string> = {
+  dashboard: 'Panel',
+  members: 'Equipo',
+  branches: 'Sedes',
+  roles: 'Roles',
+  audit: 'Auditoría',
+  settings: 'Empresa',
+  profile: 'Mi Cuenta',
+  'change-password': 'Cambiar Contraseña',
+};
+
 const breadcrumbs = computed(() => {
   const match = route.path.match(/\/companies\/[^/]+\/(.+)/);
   if (!match) return [];
 
-  const segment = match[1].split('/')[0];
-  let name = segment.charAt(0).toUpperCase() + segment.slice(1);
-  if (name === 'Members') name = 'Team';
-  return [{ name, url: route.path, isLast: true }];
+  const segments = match[1].split('/').filter(Boolean);
+  const companyIdParam = route.params.companyId as string;
+  return segments.map((segment, index) => {
+    const isLast = index === segments.length - 1;
+    const isUuid = /^[0-9a-f]{8}-/i.test(segment);
+    const name = SECTION_LABELS[segment]
+      || (isUuid ? 'Detalle' : segment.charAt(0).toUpperCase() + segment.slice(1));
+    const url = `/companies/${companyIdParam}/${segments.slice(0, index + 1).join('/')}`;
+    return { name, url, isLast };
+  });
 });
 
 const setTheme = (dark: boolean) => {
@@ -506,6 +541,21 @@ const handleLogout = async () => {
   width: 140px;
 }
 .search-box input::placeholder { color: var(--text-placeholder); }
+
+button.search-box {
+  cursor: pointer;
+  font-family: inherit;
+}
+button.search-box:hover {
+  border-color: var(--text-light);
+  background-color: var(--bg-elevated);
+}
+.search-placeholder {
+  font-size: var(--text-sm);
+  color: var(--text-placeholder);
+  width: 140px;
+  text-align: left;
+}
 .search-shortcut {
   font-size: 0.625rem;
   color: var(--text-light);

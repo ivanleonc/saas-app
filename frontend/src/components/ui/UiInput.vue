@@ -9,15 +9,22 @@
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
+        :autocomplete="autocomplete"
+        :name="name"
+        :aria-invalid="!!error"
+        :aria-describedby="error ? errorId : undefined"
         class="ui-input"
-        :class="{ 'has-toggle': type === 'password' }"
+        :class="{ 'has-toggle': type === 'password', 'has-error': !!error }"
       />
+      <UiFieldError :message="error" :id="errorId" />
       <button
         v-if="type === 'password'"
         type="button"
         class="password-toggle"
         @click="togglePassword"
-        tabindex="-1"
+        :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        :aria-pressed="showPassword"
+        tabindex="0"
       >
         <IconEye v-if="!showPassword" :size="16" stroke-width="1.8" />
         <IconEyeOff v-else :size="16" stroke-width="1.8" />
@@ -29,6 +36,7 @@
 <script setup lang="ts">
 import { ref, computed, useId } from 'vue';
 import { IconEye, IconEyeOff } from '@tabler/icons-vue';
+import UiFieldError from '@/components/ui/UiFieldError.vue';
 
 interface Props {
   label?: string;
@@ -36,18 +44,25 @@ interface Props {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  autocomplete?: string;
+  name?: string;
+  error?: string | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   placeholder: '',
   required: false,
-  disabled: false
+  disabled: false,
+  autocomplete: undefined,
+  name: undefined,
+  error: null,
 });
 
 const model = defineModel<string>({ default: '' });
 
 const id = useId();
+const errorId = `${id}-error`;
 const showPassword = ref(false);
 
 const inputType = computed(() => {
@@ -103,6 +118,14 @@ const togglePassword = () => {
 .ui-input:focus {
   border-color: var(--text-main);
   box-shadow: 0 0 0 1px var(--text-main);
+}
+
+.ui-input.has-error {
+  border-color: var(--color-danger);
+}
+.ui-input.has-error:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger);
 }
 
 .ui-input:disabled {
